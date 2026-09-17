@@ -6,6 +6,7 @@ import { anularComprobante, consultarAnulacion } from '@/services/nubefactServic
 import { InvoiceListModal } from './InvoiceListModal';
 import { ComprobanteRow } from './ComprobanteOptionsModal';
 import { ToastType } from '@/types';
+import { formatFecha, toDateKey } from '@/lib/consolidadoReport';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field, FieldLabel } from '@/components/ui/field';
@@ -23,6 +24,7 @@ interface ComunicacionesBajaViewProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenComprobantes: () => void;
+  onOpenConsolidado: () => void;
   onNotify: (message: string, type?: ToastType) => void;
 }
 
@@ -35,31 +37,6 @@ const TIPO_LABELS: Record<number, string> = {
 
 const PAGE_SIZE = 15;
 
-// DD/MM/YYYY (formato que ya entrega el backend para fechas) tal cual, o pasa cualquier otro
-// valor a una fecha local corta para no depender de un único formato de entrada.
-const formatFecha = (value: any) => {
-  if (!value) return '';
-  if (typeof value === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) return value;
-  const d = new Date(value);
-  if (isNaN(d.getTime())) return String(value);
-  return d.toLocaleDateString('es-PE');
-};
-
-// "DD/MM/YYYY" -> "YYYY-MM-DD" para comparar contra los inputs type="date"
-const toDateKey = (value: any): string => {
-  if (!value) return '';
-  if (typeof value === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
-    const [d, m, y] = value.split('/');
-    return `${y}-${m}-${d}`;
-  }
-  const d = new Date(value);
-  if (isNaN(d.getTime())) return '';
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-};
-
 const EstadoBajaBadge: React.FC<{ aceptada?: boolean | null; ticket?: string }> = ({ aceptada, ticket }) => {
   if (!ticket) return <Badge variant="secondary">SIN TICKET</Badge>;
   return aceptada
@@ -67,7 +44,7 @@ const EstadoBajaBadge: React.FC<{ aceptada?: boolean | null; ticket?: string }> 
     : <Badge variant="destructive">PENDIENTE EN SUNAT</Badge>;
 };
 
-export const ComunicacionesBajaView: React.FC<ComunicacionesBajaViewProps> = ({ isOpen, onClose, onOpenComprobantes, onNotify }) => {
+export const ComunicacionesBajaView: React.FC<ComunicacionesBajaViewProps> = ({ isOpen, onClose, onOpenComprobantes, onOpenConsolidado, onNotify }) => {
   const [rows, setRows] = useState<ComprobanteRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -232,6 +209,9 @@ export const ComunicacionesBajaView: React.FC<ComunicacionesBajaViewProps> = ({ 
       <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-background/90 px-3 py-3 shadow-sm backdrop-blur-md sm:px-4 md:px-6">
         <h1 className="text-lg font-bold tracking-tight text-foreground sm:text-xl md:text-2xl">Comunicaciones de Baja</h1>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={onOpenConsolidado}>
+            Consolidado
+          </Button>
           <Button variant="outline" onClick={onOpenComprobantes}>
             Ver comprobantes
           </Button>

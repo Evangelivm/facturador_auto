@@ -14,6 +14,7 @@ import { InputModal } from '@/components/InputModal';
 import { InvoiceListModal } from '@/components/InvoiceListModal';
 import { ComprobantesListView } from '@/components/ComprobantesListView';
 import { ComunicacionesBajaView } from '@/components/ComunicacionesBajaView';
+import { ConsolidadoView } from '@/components/ConsolidadoView';
 import { ComprobanteRow } from '@/components/ComprobanteOptionsModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,7 +24,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusIcon, XIcon, RefreshCwIcon, FileTextIcon, Loader2Icon, ReceiptIcon, BanIcon } from 'lucide-react';
+import { PlusIcon, XIcon, RefreshCwIcon, FileTextIcon, Loader2Icon, ReceiptIcon, BanIcon, LayoutListIcon } from 'lucide-react';
 
 // Serie con la que se identifica un documento que todavía es un borrador (nunca se envía a
 // NubeFact/SUNAT así). Al emitirlo recién se le asigna la serie y el correlativo real.
@@ -249,6 +250,8 @@ function App() {
   const [comprobantesViewOpen, setComprobantesViewOpen] = useState(false);
   // Estado para la vista de "Comunicaciones de Baja" (anulaciones ante SUNAT y su ticket)
   const [bajaViewOpen, setBajaViewOpen] = useState(false);
+  // Estado para el "Consolidado de Facturas, Boletas y Notas" (reporte global + export a Excel)
+  const [consolidadoViewOpen, setConsolidadoViewOpen] = useState(false);
 
   // Notificaciones tipo "toast" (reemplazan los alert() nativos del navegador)
   const showToast = (message: string, type: ToastType = 'success') => {
@@ -1085,6 +1088,10 @@ function App() {
                   <ReceiptIcon data-icon="inline-start" />
                   Ver comprobantes
               </Button>
+              <Button variant="ghost" size="sm" className="flex-1 sm:flex-none text-gray-600 hover:text-gray-900" onClick={() => setConsolidadoViewOpen(true)}>
+                  <LayoutListIcon data-icon="inline-start" />
+                  Consolidado
+              </Button>
               <Button variant="ghost" size="sm" className="flex-1 sm:flex-none text-gray-600 hover:text-gray-900" onClick={() => setBajaViewOpen(true)}>
                   <BanIcon data-icon="inline-start" />
                   Comunicaciones de baja
@@ -1635,12 +1642,21 @@ function App() {
           onSelectInvoice={handleSelectInvoiceFromList}
           onGenerateNew={handleGenerateNewFromInvoice}
           onOpenBajas={() => { setComprobantesViewOpen(false); setBajaViewOpen(true); }}
+          onOpenConsolidado={() => { setComprobantesViewOpen(false); setConsolidadoViewOpen(true); }}
           onNotify={showToast}
       />
       <ComunicacionesBajaView
           isOpen={bajaViewOpen}
           onClose={() => setBajaViewOpen(false)}
           onOpenComprobantes={() => { setBajaViewOpen(false); setComprobantesViewOpen(true); }}
+          onOpenConsolidado={() => { setBajaViewOpen(false); setConsolidadoViewOpen(true); }}
+          onNotify={showToast}
+      />
+      <ConsolidadoView
+          isOpen={consolidadoViewOpen}
+          onClose={() => setConsolidadoViewOpen(false)}
+          onOpenComprobantes={() => { setConsolidadoViewOpen(false); setComprobantesViewOpen(true); }}
+          onOpenBajas={() => { setConsolidadoViewOpen(false); setBajaViewOpen(true); }}
           onNotify={showToast}
       />
       <ResponseViewer response={response} loading={loading} error={error} onClose={() => { setResponse(null); setError(null); }} />

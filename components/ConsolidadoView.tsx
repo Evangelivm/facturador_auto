@@ -17,51 +17,39 @@ import { Empty, EmptyHeader, EmptyTitle, EmptyMedia } from '@/components/ui/empt
 import {
   Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableFooter } from '@/components/ui/table';
-import { SearchIcon, DownloadIcon, FilterIcon, InboxIcon, XIcon, PlusIcon, CircleCheckIcon, CircleXIcon, Loader2Icon } from 'lucide-react';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import {
+  SearchIcon, DownloadIcon, FilterIcon, InboxIcon, XIcon, CircleCheckIcon, CircleXIcon,
+  Loader2Icon, PrinterIcon,
+} from 'lucide-react';
 
-interface ComprobantesListViewProps {
+interface ConsolidadoViewProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectInvoice: (invoice: any) => void;
-  onGenerateNew: (invoice: ComprobanteRow, targetTipo: number) => void;
+  onOpenComprobantes: () => void;
   onOpenBajas: () => void;
-  onOpenConsolidado: () => void;
   onNotify: (message: string, type?: ToastType) => void;
 }
 
-const TIPO_LABELS: Record<number, string> = {
-  1: 'FACTURA ELECTRÓNICA',
-  2: 'BOLETA DE VENTA ELECTRÓNICA',
-  3: 'NOTA DE CRÉDITO ELECTRÓNICA',
-  4: 'NOTA DE DÉBITO ELECTRÓNICA'
-};
-
 const PAGE_SIZE = 15;
 
-const EstadoBadge: React.FC<{ estado?: string }> = ({ estado }) => (
-  <Badge variant={estado === 'EMITIDO' ? 'default' : estado === 'BORRADOR' ? 'secondary' : 'destructive'}>
-    {estado || 'EMITIDO'}
-  </Badge>
-);
-
-export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
-  isOpen, onClose, onSelectInvoice, onGenerateNew, onOpenBajas, onOpenConsolidado, onNotify
+export const ConsolidadoView: React.FC<ConsolidadoViewProps> = ({
+  isOpen, onClose, onOpenComprobantes, onOpenBajas, onNotify
 }) => {
   const [rows, setRows] = useState<ComprobanteRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showBanner, setShowBanner] = useState(true);
 
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
-  const [tipoFiltro, setTipoFiltro] = useState(''); // '', '1', '2', '3', '4', 'BORRADOR'
+  const [tipoFiltro, setTipoFiltro] = useState('');
   const [entidadFiltro, setEntidadFiltro] = useState('');
-  const [anuladoFiltro, setAnuladoFiltro] = useState(''); // '', 'ANULADOS', 'NO_ANULADOS'
   const [buscarDocumento, setBuscarDocumento] = useState('');
   const [page, setPage] = useState(1);
 
-  const [optionsInvoice, setOptionsInvoice] = useState<ComprobanteRow | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [optionsInvoice, setOptionsInvoice] = useState<ComprobanteRow | null>(null);
 
   const loadInvoices = async () => {
     setLoading(true);
@@ -70,7 +58,7 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
       const data = await getInvoices();
       setRows(data);
     } catch (e: any) {
-      setError(e.message || 'Error al cargar el listado de comprobantes');
+      setError(e.message || 'Error al cargar el consolidado');
     } finally {
       setLoading(false);
     }
@@ -80,49 +68,36 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
     if (isOpen) loadInvoices();
   }, [isOpen]);
 
-  const activeFilters: ListFilters = { fechaInicio, fechaFin, tipoFiltro, entidadFiltro, anuladoFiltro, buscarDocumento };
+  const activeFilters: ListFilters = {
+    fechaInicio, fechaFin, tipoFiltro, entidadFiltro, anuladoFiltro: '', buscarDocumento,
+  };
 
   const filteredRows = useMemo(() => {
     return rows.filter(row => matchesFilters(row, activeFilters));
-  }, [rows, fechaInicio, fechaFin, tipoFiltro, entidadFiltro, anuladoFiltro, buscarDocumento]);
+  }, [rows, fechaInicio, fechaFin, tipoFiltro, entidadFiltro, buscarDocumento]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
   const pageRows = filteredRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  useEffect(() => { setPage(1); }, [fechaInicio, fechaFin, tipoFiltro, entidadFiltro, anuladoFiltro, buscarDocumento]);
+  useEffect(() => { setPage(1); }, [fechaInicio, fechaFin, tipoFiltro, entidadFiltro, buscarDocumento]);
 
-  const totals = useMemo(() => {
-    const acc = { 1: 0, 2: 0, 3: 0, 4: 0 };
-    filteredRows.forEach(row => {
-      if (row.moneda !== 1) return; // Totales en Soles, igual que el reporte de NubeFact
-      if (row.estado === 'ANULADO') return; // "...Y NO ANULADAS"
-      if (row.estado === 'BORRADOR') return; // aún no se envió a SUNAT, no cuenta como comprobante real
-      const tipo = row.tipo_de_comprobante as 1 | 2 | 3 | 4;
-      if (acc[tipo] !== undefined) acc[tipo] += Number(row.total) || 0;
-    });
-    return acc;
-  }, [filteredRows]);
+  const handleVer = (row: ComprobanteRow) => setOptionsInvoice(row);
 
-  const handleOpenOptions = (row: ComprobanteRow) => setOptionsInvoice(row);
-
-  const handleEditarBorrador = async (row: ComprobanteRow) => {
-    try {
-      const full = await getInvoiceById(row.id);
-      onSelectInvoice(full);
-      onClose();
-    } catch (e: any) {
-      onNotify('Error al cargar el borrador: ' + e.message, 'error');
+  const openLink = (url?: string) => {
+    if (!url) {
+      onNotify('Este enlace no está disponible para este comprobante.', 'info');
+      return;
     }
+    window.open(url, '_blank');
   };
 
-  // Genera el mismo "Consolidado de Facturas, Boletas y Notas" en .xlsx que descarga NubeFact
-  // (mismas columnas), pero respetando los filtros que estén activos en pantalla. Se pide el
-  // detalle completo (con items) aparte del listado liviano porque recién ahí se necesita.
+  // Mismo "Consolidado de Facturas, Boletas y Notas" en .xlsx que descarga NubeFact (mismas
+  // columnas), respetando los filtros activos en pantalla.
   const handleDescargaExcel = async () => {
     setExporting(true);
     try {
       const fullRows = await getInvoicesForExport();
-      await exportConsolidadoExcel(fullRows, activeFilters, 'comprobantes');
+      await exportConsolidadoExcel(fullRows, activeFilters, 'consolidado');
     } catch (e: any) {
       onNotify('Error al generar el Excel: ' + (e.message || ''), 'error');
     } finally {
@@ -135,17 +110,15 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
   return (
     <div className="fixed inset-0 z-40 overflow-y-auto bg-background">
       <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-background/90 px-3 py-3 shadow-sm backdrop-blur-md sm:px-4 md:px-6">
-        <h1 className="text-lg font-bold tracking-tight text-foreground sm:text-xl md:text-2xl">Comprobantes</h1>
+        <h1 className="text-lg font-bold tracking-tight text-foreground sm:text-xl md:text-2xl">
+          Consolidado de Facturas, Boletas y Notas
+        </h1>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={onOpenConsolidado}>
-            Consolidado
+          <Button variant="outline" onClick={onOpenComprobantes}>
+            Ver comprobantes
           </Button>
           <Button variant="outline" onClick={onOpenBajas}>
             Comunicaciones de baja
-          </Button>
-          <Button onClick={onClose}>
-            <PlusIcon data-icon="inline-start" />
-            Emitir comprobante
           </Button>
           <Button variant="ghost" size="icon" onClick={onClose} title="Cerrar">
             <XIcon />
@@ -154,6 +127,20 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
       </div>
 
       <div className="w-full p-3 sm:p-4 md:p-6">
+        {showBanner && (
+          <Alert className="mb-4 border-amber-200 bg-amber-50 text-amber-900">
+            <AlertDescription className="flex items-start justify-between gap-3">
+              <span>
+                <strong>IMPORTANTE:</strong> en esta opción se ven todas las FACTURAS, BOLETAS y
+                NOTAS emitidas por esta empresa.
+              </span>
+              <button onClick={() => setShowBanner(false)} className="shrink-0 text-amber-700 hover:text-amber-900" title="Cerrar aviso">
+                <XIcon className="size-4" />
+              </button>
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="mb-4 rounded-2xl border bg-card p-3 shadow-sm">
           <h2 className="mb-3 flex items-center gap-1.5 text-xs font-bold tracking-wide text-muted-foreground uppercase">
             <FilterIcon className="size-3.5 text-primary" />
@@ -161,15 +148,15 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
           </h2>
           <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
             <Field>
-              <FieldLabel htmlFor="filtro-desde">Desde</FieldLabel>
-              <Input id="filtro-desde" type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} />
+              <FieldLabel htmlFor="cons-desde">Desde</FieldLabel>
+              <Input id="cons-desde" type="date" value={fechaInicio} onChange={e => setFechaInicio(e.target.value)} />
             </Field>
             <Field>
-              <FieldLabel htmlFor="filtro-hasta">Hasta</FieldLabel>
-              <Input id="filtro-hasta" type="date" value={fechaFin} onChange={e => setFechaFin(e.target.value)} />
+              <FieldLabel htmlFor="cons-hasta">Hasta</FieldLabel>
+              <Input id="cons-hasta" type="date" value={fechaFin} onChange={e => setFechaFin(e.target.value)} />
             </Field>
             <Field>
-              <FieldLabel htmlFor="filtro-tipo">Tipo de comprobante</FieldLabel>
+              <FieldLabel htmlFor="cons-tipo">Filtrar por tipo</FieldLabel>
               <Select
                 items={{
                   '': 'TODOS LOS TIPOS',
@@ -177,12 +164,11 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
                   '2': 'BOLETA DE VENTA ELECTRÓNICA',
                   '3': 'NOTA DE CRÉDITO ELECTRÓNICA',
                   '4': 'NOTA DE DÉBITO ELECTRÓNICA',
-                  BORRADOR: 'BORRADORES',
                 }}
                 value={tipoFiltro}
                 onValueChange={(v) => setTipoFiltro(v ?? '')}
               >
-                <SelectTrigger id="filtro-tipo" className="w-full"><SelectValue /></SelectTrigger>
+                <SelectTrigger id="cons-tipo" className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
                     <SelectItem value="">TODOS LOS TIPOS</SelectItem>
@@ -190,45 +176,27 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
                     <SelectItem value="2">BOLETA DE VENTA ELECTRÓNICA</SelectItem>
                     <SelectItem value="3">NOTA DE CRÉDITO ELECTRÓNICA</SelectItem>
                     <SelectItem value="4">NOTA DE DÉBITO ELECTRÓNICA</SelectItem>
-                    <SelectItem value="BORRADOR">BORRADORES</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
             </Field>
             <Field>
-              <FieldLabel htmlFor="filtro-anulado">Estado de anulación</FieldLabel>
-              <Select
-                items={{ '': 'Todos', ANULADOS: 'Solo anulados', NO_ANULADOS: 'No anulados' }}
-                value={anuladoFiltro}
-                onValueChange={(v) => setAnuladoFiltro(v ?? '')}
-              >
-                <SelectTrigger id="filtro-anulado" className="w-full"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="">Todos</SelectItem>
-                    <SelectItem value="ANULADOS">Solo anulados</SelectItem>
-                    <SelectItem value="NO_ANULADOS">No anulados</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </Field>
-          </div>
-
-          <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 md:grid-cols-4">
-            <Field>
-              <FieldLabel htmlFor="filtro-entidad">Buscar por entidad (RUC/DNI o razón social)</FieldLabel>
+              <FieldLabel htmlFor="cons-entidad">Buscar por entidad</FieldLabel>
               <Input
-                id="filtro-entidad"
-                placeholder="Ej: KYC Industrial SAC"
+                id="cons-entidad"
+                placeholder="RUC/DNI o razón social"
                 value={entidadFiltro}
                 onChange={e => setEntidadFiltro(e.target.value)}
               />
             </Field>
-            <Field>
-              <FieldLabel htmlFor="filtro-documento">Buscar documento</FieldLabel>
+          </div>
+
+          <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 md:grid-cols-4">
+            <Field className="md:col-span-2">
+              <FieldLabel htmlFor="cons-doc">Buscar documento</FieldLabel>
               <div className="flex gap-2">
                 <Input
-                  id="filtro-documento"
+                  id="cons-doc"
                   placeholder="Ej: FFF1-1"
                   value={buscarDocumento}
                   onChange={e => setBuscarDocumento(e.target.value)}
@@ -238,7 +206,7 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
                 </Button>
               </div>
             </Field>
-            <Button onClick={loadInvoices}>Aplicar filtros</Button>
+            <Button onClick={loadInvoices}>Filtrar</Button>
             <Button variant="secondary" onClick={handleDescargaExcel} disabled={exporting} title="Descargar consolidado en Excel">
               {exporting ? <Loader2Icon data-icon="inline-start" className="animate-spin" /> : <DownloadIcon data-icon="inline-start" />}
               {exporting ? 'Generando...' : 'Descarga Excel'}
@@ -274,31 +242,30 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
           </Empty>
         ) : (
           <>
-            {/* Móvil / tablet angosta: tarjetas apiladas, sin scroll horizontal */}
+            {/* Móvil: tarjetas apiladas */}
             <div className="mb-4 flex flex-col gap-3 md:hidden">
               {pageRows.map(row => {
+                const esAnulado = row.estado === 'ANULADO';
                 const aceptada = isAceptada(row);
                 const pagado = isPagado(row);
                 return (
-                  <div key={row.id} className={`rounded-xl border p-3 shadow-sm ${pagado ? 'border-amber-200 bg-amber-50' : 'bg-card'}`}>
+                  <div key={row.id} className={`rounded-xl border p-3 shadow-sm ${esAnulado ? 'opacity-60' : 'bg-card'}`}>
                     <div className="flex items-start justify-between gap-2">
-                      <div>
+                      <div className={esAnulado ? 'line-through' : ''}>
                         <p className="font-mono font-bold text-foreground">{row.serie}-{row.numero}</p>
                         <p className="text-xs text-muted-foreground">
                           {formatFecha((row as any).fecha_de_emision)} · Tipo {SUNAT_TIPO_CODE[row.tipo_de_comprobante] || '-'}
                         </p>
                       </div>
-                      <EstadoBadge estado={row.estado} />
+                      {esAnulado && <Badge variant="destructive">ANULADO</Badge>}
                     </div>
-
-                    <p className="mt-2 text-sm text-foreground">{row.cliente_denominacion}</p>
-                    <p className="text-xs text-muted-foreground">{row.cliente_numero_de_documento}</p>
-
+                    <p className={`mt-2 text-sm text-foreground ${esAnulado ? 'line-through' : ''}`}>{row.cliente_denominacion}</p>
                     <div className="mt-2 flex items-center justify-between">
-                      <p className="text-lg font-bold text-foreground">{row.moneda === 2 ? '$' : 'S/'} {Number(row.total).toFixed(2)}</p>
-                      {row.estado === 'ANULADO' && <span className="text-xs font-bold text-destructive">ANULADO</span>}
+                      <p className={`text-lg font-bold text-foreground ${esAnulado ? 'line-through' : ''}`}>
+                        {row.moneda === 2 ? '$' : 'S/'} {Number(row.total).toFixed(2)}
+                      </p>
+                      <Badge variant={pagado ? 'default' : 'outline'}>{pagado ? 'PAGADO' : 'NO PAGADO'}</Badge>
                     </div>
-
                     <div className="mt-2 flex flex-wrap gap-2">
                       {row.nubefact_enlace_pdf && (
                         <Badge variant="destructive" render={<a href={row.nubefact_enlace_pdf} target="_blank" rel="noreferrer" />}>PDF</Badge>
@@ -312,62 +279,69 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
                       {row.estado !== 'BORRADOR' && (
                         <Badge variant={aceptada ? 'default' : 'destructive'}>SUNAT {aceptada ? '✔' : '✘'}</Badge>
                       )}
-                      {!row.estado || row.estado !== 'BORRADOR' ? (
-                        <Badge variant={pagado ? 'default' : 'outline'}>{pagado ? 'PAGADO' : 'POR COBRAR'}</Badge>
-                      ) : null}
                     </div>
-
-                    <div className="mt-3 flex justify-end gap-4 border-t pt-2">
-                      {row.estado === 'BORRADOR' && (
-                        <Button variant="link" size="sm" onClick={() => handleEditarBorrador(row)}>Editar</Button>
-                      )}
-                      <Button variant="link" size="sm" onClick={() => handleOpenOptions(row)}>Opciones</Button>
+                    <div className="mt-3 flex justify-end border-t pt-2">
+                      <Button variant="link" size="sm" onClick={() => handleVer(row)}>Ver</Button>
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* Escritorio / tablet ancha: tabla completa */}
-            <div className="hidden rounded-lg border md:block">
+            {/* Escritorio: tabla completa, igual a la del Consolidado de NubeFact */}
+            <div className="hidden overflow-x-auto rounded-lg border md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>FECHA</TableHead>
                     <TableHead>TIPO</TableHead>
                     <TableHead>SERIE</TableHead>
-                    <TableHead>NUM</TableHead>
-                    <TableHead>RUC</TableHead>
-                    <TableHead>DENOMINACIÓN</TableHead>
-                    <TableHead className="text-center">MONEDA</TableHead>
+                    <TableHead>NÚM.</TableHead>
+                    <TableHead>ENTIDAD</TableHead>
+                    <TableHead className="text-center">M</TableHead>
                     <TableHead className="text-right">TOTAL</TableHead>
-                    <TableHead className="text-center">ESTADO</TableHead>
+                    <TableHead className="text-center">PAGADO?</TableHead>
+                    <TableHead className="text-center" title="No disponible en este sistema">ENVIADO AL CLIENTE?</TableHead>
+                    <TableHead className="text-center" title="No disponible en este sistema">LEÍDO POR CLIENTE?</TableHead>
                     <TableHead className="text-center">ANULADO?</TableHead>
+                    <TableHead className="text-center">IMPRIMIR</TableHead>
                     <TableHead className="text-center">PDF</TableHead>
                     <TableHead className="text-center">XML</TableHead>
                     <TableHead className="text-center">CDR</TableHead>
-                    <TableHead className="text-center">ESTADO SUNAT</TableHead>
-                    <TableHead className="text-center">PROCESO</TableHead>
-                    <TableHead className="text-center">OPCIONES</TableHead>
+                    <TableHead className="text-center">ESTADO EN LA SUNAT</TableHead>
+                    <TableHead className="text-center">VER</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {pageRows.map(row => {
+                    const esAnulado = row.estado === 'ANULADO';
                     const aceptada = isAceptada(row);
                     const pagado = isPagado(row);
+                    const rowText = esAnulado ? 'line-through text-muted-foreground' : '';
                     return (
-                      <TableRow key={row.id} className={pagado ? 'bg-amber-50 hover:bg-amber-100' : undefined}>
-                        <TableCell>{formatFecha((row as any).fecha_de_emision)}</TableCell>
-                        <TableCell>{SUNAT_TIPO_CODE[row.tipo_de_comprobante] || '-'}</TableCell>
-                        <TableCell className="font-mono">{row.serie}</TableCell>
-                        <TableCell className="font-mono">{row.numero}</TableCell>
-                        <TableCell>{row.cliente_numero_de_documento}</TableCell>
-                        <TableCell>{row.cliente_denominacion}</TableCell>
-                        <TableCell className="text-center">{row.moneda === 2 ? '$' : 'S/'}</TableCell>
-                        <TableCell className="text-right font-semibold">{Number(row.total).toFixed(2)}</TableCell>
-                        <TableCell className="text-center"><EstadoBadge estado={row.estado} /></TableCell>
-                        <TableCell className={`text-center font-semibold ${row.estado === 'ANULADO' ? 'text-destructive' : 'text-muted-foreground'}`}>
-                          {row.estado === 'ANULADO' ? 'SI' : 'NO'}
+                      <TableRow key={row.id} className={esAnulado ? 'opacity-70' : undefined}>
+                        <TableCell className={rowText}>{formatFecha((row as any).fecha_de_emision)}</TableCell>
+                        <TableCell className={rowText}>{SUNAT_TIPO_CODE[row.tipo_de_comprobante] || '-'}</TableCell>
+                        <TableCell className={`font-mono ${rowText}`}>{row.serie}</TableCell>
+                        <TableCell className={`font-mono ${rowText}`}>{row.numero}</TableCell>
+                        <TableCell className={rowText}>
+                          <p>{row.cliente_denominacion}</p>
+                          <p className="text-xs text-muted-foreground">{row.cliente_numero_de_documento}</p>
+                        </TableCell>
+                        <TableCell className={`text-center ${rowText}`}>{row.moneda === 2 ? '$' : 'S/'}</TableCell>
+                        <TableCell className={`text-right font-semibold ${rowText}`}>{Number(row.total).toFixed(2)}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant={pagado ? 'default' : 'outline'}>{pagado ? 'SI' : 'NO'}</Badge>
+                        </TableCell>
+                        <TableCell className="text-center text-muted-foreground">—</TableCell>
+                        <TableCell className="text-center text-muted-foreground">—</TableCell>
+                        <TableCell className={`text-center font-semibold ${esAnulado ? 'text-destructive' : 'text-muted-foreground'}`}>
+                          {esAnulado ? 'SI' : 'NO'}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button variant="ghost" size="icon-sm" onClick={() => openLink(row.nubefact_enlace_pdf)} title="Imprimir">
+                            <PrinterIcon />
+                          </Button>
                         </TableCell>
                         <TableCell className="text-center">
                           {row.nubefact_enlace_pdf ? (
@@ -392,47 +366,13 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
                           )}
                         </TableCell>
                         <TableCell className="text-center">
-                          {row.estado === 'BORRADOR' ? '-' : (
-                            <Badge variant={pagado ? 'default' : 'outline'}>{pagado ? 'PAGADO' : 'POR COBRAR'}</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center whitespace-nowrap">
-                          {row.estado === 'BORRADOR' && (
-                            <Button variant="link" size="sm" onClick={() => handleEditarBorrador(row)}>Editar</Button>
-                          )}
-                          <Button variant="link" size="sm" onClick={() => handleOpenOptions(row)}>Opciones</Button>
+                          <Button variant="link" size="sm" onClick={() => handleVer(row)}>Ver</Button>
                         </TableCell>
                       </TableRow>
                     );
                   })}
                 </TableBody>
-                <TableFooter>
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-right font-semibold">TOTAL DE FACTURAS EN SOLES (no anuladas)</TableCell>
-                    <TableCell colSpan={9} className="font-bold">S/ {totals[1].toFixed(2)}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-right font-semibold">TOTAL DE BOLETAS DE VENTA EN SOLES (no anuladas)</TableCell>
-                    <TableCell colSpan={9} className="font-bold">S/ {totals[2].toFixed(2)}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-right font-semibold">TOTAL DE NOTAS DE CRÉDITO EN SOLES (no anuladas)</TableCell>
-                    <TableCell colSpan={9} className="font-bold">S/ {totals[3].toFixed(2)}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-right font-semibold">TOTAL DE NOTAS DE DÉBITO EN SOLES (no anuladas)</TableCell>
-                    <TableCell colSpan={9} className="font-bold">S/ {totals[4].toFixed(2)}</TableCell>
-                  </TableRow>
-                </TableFooter>
               </Table>
-            </div>
-
-            {/* Totales en móvil (la tabla con footer está oculta) */}
-            <div className="flex flex-col gap-1 rounded-lg border p-3 text-sm md:hidden">
-              <div className="flex justify-between"><span className="text-muted-foreground">Facturas (S/, no anuladas)</span><span className="font-bold">S/ {totals[1].toFixed(2)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Boletas (S/, no anuladas)</span><span className="font-bold">S/ {totals[2].toFixed(2)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Notas de crédito (S/, no anuladas)</span><span className="font-bold">S/ {totals[3].toFixed(2)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Notas de débito (S/, no anuladas)</span><span className="font-bold">S/ {totals[4].toFixed(2)}</span></div>
             </div>
           </>
         )}
@@ -443,10 +383,7 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
         invoice={optionsInvoice}
         onClose={() => setOptionsInvoice(null)}
         onChanged={loadInvoices}
-        onGenerateNew={(invoice, targetTipo) => {
-          setOptionsInvoice(null);
-          onGenerateNew(invoice, targetTipo);
-        }}
+        onGenerateNew={() => setOptionsInvoice(null)}
         onNotify={onNotify}
       />
     </div>
