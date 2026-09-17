@@ -312,7 +312,9 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
                       {row.estado !== 'BORRADOR' && (
                         <Badge variant={aceptada ? 'default' : 'destructive'}>SUNAT {aceptada ? '✔' : '✘'}</Badge>
                       )}
-                      {!row.estado || row.estado !== 'BORRADOR' ? (
+                      {row.estado === 'ANULADO' ? (
+                        <Badge variant="destructive">ANULADO</Badge>
+                      ) : row.estado !== 'BORRADOR' ? (
                         <Badge variant={pagado ? 'default' : 'outline'}>{pagado ? 'PAGADO' : 'POR COBRAR'}</Badge>
                       ) : null}
                     </div>
@@ -392,7 +394,9 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
                           )}
                         </TableCell>
                         <TableCell className="text-center">
-                          {row.estado === 'BORRADOR' ? '-' : (
+                          {row.estado === 'BORRADOR' ? '-' : row.estado === 'ANULADO' ? (
+                            <Badge variant="destructive">ANULADO</Badge>
+                          ) : (
                             <Badge variant={pagado ? 'default' : 'outline'}>{pagado ? 'PAGADO' : 'POR COBRAR'}</Badge>
                           )}
                         </TableCell>
