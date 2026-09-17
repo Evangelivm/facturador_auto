@@ -65,6 +65,29 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* La UI está construida con utilidades de Tailwind en rem (paddings, texto, radios), así que
+   escalar el tamaño base del html reduce TODA la interfaz proporcionalmente sin tocar cada
+   componente. Sin esto, el diseño se ve "de tamaño completo" incluso en laptops más chicas
+   que el monitor donde se diseñó. Los celulares (<768px) quedan intactos en 16px para no
+   activar el auto-zoom de iOS en inputs.
+*/
+html {
+  font-size: 16px;
+}
+@media (min-width: 768px) and (max-width: 1439px) {
+  html { font-size: 14px; }
+}
+@media (min-width: 1440px) and (max-width: 1919px) {
+  html { font-size: 15px; }
+}
+
+/* Nunca permitir scroll horizontal a nivel de página: cualquier contenido más ancho que la
+   pantalla (ej. tablas con muchas columnas) debe scrollear dentro de su propio contenedor
+   (ya lo hace el componente Table), no arrastrar todo el layout hacia los costados. */
+html, body {
+  overflow-x: hidden;
+}
+
 body {
   background:
     radial-gradient(1200px 600px at 100% -10%, color-mix(in oklab, var(--color-primary-200) 35%, transparent), transparent),
