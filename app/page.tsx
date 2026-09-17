@@ -181,9 +181,8 @@ function App() {
 
   const [isDetractionModalOpen, setIsDetractionModalOpen] = useState(false);
   const [loadingTipoCambio, setLoadingTipoCambio] = useState(false);
-  // "Opciones adicionales" (detracción, fondo de garantía, orden de compra) empieza colapsado
-  // salvo que alguna ya esté activa, para no abrumar cuando no se usan.
-  const [showOpcionesAdicionales, setShowOpcionesAdicionales] = useState(false);
+  // "Opciones adicionales" (detracción, fondo de garantía, orden de compra) empieza desplegado.
+  const [showOpcionesAdicionales, setShowOpcionesAdicionales] = useState(true);
 
   const [projectsList, setProjectsList] = useState<string[]>([]);
   const [serviceLinesList, setServiceLinesList] = useState<string[]>([]);
@@ -693,7 +692,7 @@ function App() {
       setNumCuotas(0);
       setCuotas([]);
       setFirstInstallmentDate("");
-      setShowOpcionesAdicionales(false);
+      setShowOpcionesAdicionales(true);
   };
 
   const handleSubmit = async () => {
