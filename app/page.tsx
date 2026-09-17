@@ -144,6 +144,15 @@ const NOTA_CREDITO_CATALOG = [
   { code: 13, label: "AJUSTES - MONTOS Y/O FECHAS DE PAGO" },
 ];
 
+// Catálogo de motivos de Nota de Débito (según manual de integración NubeFact)
+const NOTA_DEBITO_CATALOG = [
+  { code: 1, label: "INTERESES POR MORA" },
+  { code: 2, label: "AUMENTO EN EL VALOR" },
+  { code: 3, label: "PENALIDADES" },
+  { code: 4, label: "AJUSTES AFECTOS AL IVAP" },
+  { code: 5, label: "AJUSTES DE OPERACIONES DE EXPORTACIÓN" },
+];
+
 // Helper para sumar días a una fecha DD/MM/YYYY
 const addDaysToDate = (dateStr: string, days: number): string => {
   if (!dateStr) return "";
@@ -404,19 +413,22 @@ function App() {
   const handleTipoComprobanteChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = parseInt(e.target.value);
     const isNotaCredito = val === 3;
+    const isNotaDebito = val === 4;
+    const isNota = isNotaCredito || isNotaDebito;
 
     setInvoice(prev => ({
       ...prev,
       tipo_de_comprobante: val,
-      // Limpiar campos propios de Nota de Crédito si se vuelve a Factura
-      documento_que_se_modifica_tipo: isNotaCredito ? prev.documento_que_se_modifica_tipo : "",
-      documento_que_se_modifica_serie: isNotaCredito ? prev.documento_que_se_modifica_serie : "",
-      documento_que_se_modifica_numero: isNotaCredito ? prev.documento_que_se_modifica_numero : "",
+      // Limpiar campos propios de Nota de Crédito/Débito si se vuelve a Factura
+      documento_que_se_modifica_tipo: isNota ? (prev.documento_que_se_modifica_tipo || 1) : "",
+      documento_que_se_modifica_serie: isNota ? prev.documento_que_se_modifica_serie : "",
+      documento_que_se_modifica_numero: isNota ? prev.documento_que_se_modifica_numero : "",
       tipo_de_nota_de_credito: isNotaCredito ? prev.tipo_de_nota_de_credito : "",
+      tipo_de_nota_de_debito: isNotaDebito ? prev.tipo_de_nota_de_debito : "",
     }));
 
-    if (isNotaCredito) {
-      // Una Nota de Crédito no maneja cronograma de cuotas
+    if (isNota) {
+      // Una Nota de Crédito/Débito no maneja cronograma de cuotas
       setNumCuotas(0);
       setCuotas([]);
     }
@@ -716,6 +728,15 @@ function App() {
         }
         if (!invoice.tipo_de_nota_de_credito) {
           throw new Error("Debe seleccionar el motivo (tipo) de la Nota de Crédito");
+        }
+      }
+
+      if (invoice.tipo_de_comprobante === 4) {
+        if (!invoice.documento_que_se_modifica_serie || !invoice.documento_que_se_modifica_numero) {
+          throw new Error("Para la Nota de Débito debe indicar la serie y número del comprobante que se modifica");
+        }
+        if (!invoice.tipo_de_nota_de_debito) {
+          throw new Error("Debe seleccionar el motivo (tipo) de la Nota de Débito");
         }
       }
 
@@ -1100,11 +1121,11 @@ function App() {
     <div className="min-h-screen pb-6 font-sans">
       <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200/80 shadow-sm px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-3">
-              <span className={`hidden sm:flex h-9 w-9 items-center justify-center rounded-xl text-white font-black text-sm shadow-lg shadow-primary-600/30 bg-gradient-to-br ${invoice.tipo_de_comprobante === 3 ? 'from-purple-500 to-fuchsia-600' : 'from-primary-500 to-violet-600'}`}>
+              <span className={`hidden sm:flex h-9 w-9 items-center justify-center rounded-xl text-white font-black text-sm shadow-lg shadow-primary-600/30 bg-gradient-to-br ${invoice.tipo_de_comprobante === 3 ? 'from-purple-500 to-fuchsia-600' : invoice.tipo_de_comprobante === 4 ? 'from-amber-500 to-orange-600' : 'from-primary-500 to-violet-600'}`}>
                   NF
               </span>
               <h1 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">
-                  {invoice.tipo_de_comprobante === 3 ? 'Nueva Nota de Crédito' : 'Nueva Factura'}
+                  {invoice.tipo_de_comprobante === 3 ? 'Nueva Nota de Crédito' : invoice.tipo_de_comprobante === 4 ? 'Nueva Nota de Débito' : 'Nueva Factura'}
               </h1>
           </div>
 
@@ -1185,21 +1206,22 @@ function App() {
                 </div>
 
                 {/* LADO DERECHO: DATOS COMPROBANTE */}
-                <div className={`w-full md:w-1/3 p-3 rounded-xl border shadow-sm ${invoice.tipo_de_comprobante === 3 ? 'bg-gradient-to-br from-purple-50 to-fuchsia-50 border-purple-200' : 'bg-gradient-to-br from-primary-50 to-indigo-50 border-primary-100'}`}>
+                <div className={`w-full md:w-1/3 p-3 rounded-xl border shadow-sm ${invoice.tipo_de_comprobante === 3 ? 'bg-gradient-to-br from-purple-50 to-fuchsia-50 border-purple-200' : invoice.tipo_de_comprobante === 4 ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200' : 'bg-gradient-to-br from-primary-50 to-indigo-50 border-primary-100'}`}>
                     <FieldLabel className="mb-1 text-xs font-semibold text-gray-600">Tipo de comprobante</FieldLabel>
                     <div className="flex justify-between items-center mb-2">
                         <Select
-                            items={{ '1': 'FACTURA ELECTRÓNICA', '3': 'NOTA DE CRÉDITO ELECTRÓNICA' }}
+                            items={{ '1': 'FACTURA ELECTRÓNICA', '3': 'NOTA DE CRÉDITO ELECTRÓNICA', '4': 'NOTA DE DÉBITO ELECTRÓNICA' }}
                             value={String(invoice.tipo_de_comprobante)}
                             onValueChange={(v) => handleTipoComprobanteChange({ target: { value: v ?? '1' } } as any)}
                         >
-                            <SelectTrigger className={`w-fit border-0 bg-transparent p-0 text-lg font-bold shadow-none focus-visible:ring-0 ${invoice.tipo_de_comprobante === 3 ? 'text-purple-700' : 'text-gray-800'}`}>
+                            <SelectTrigger className={`w-fit border-0 bg-transparent p-0 text-lg font-bold shadow-none focus-visible:ring-0 ${invoice.tipo_de_comprobante === 3 ? 'text-purple-700' : invoice.tipo_de_comprobante === 4 ? 'text-amber-700' : 'text-gray-800'}`}>
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
                                     <SelectItem value="1">FACTURA ELECTRÓNICA</SelectItem>
                                     <SelectItem value="3">NOTA DE CRÉDITO ELECTRÓNICA</SelectItem>
+                                    <SelectItem value="4">NOTA DE DÉBITO ELECTRÓNICA</SelectItem>
                                 </SelectGroup>
                             </SelectContent>
                         </Select>
@@ -1261,10 +1283,10 @@ function App() {
                         )}
                     </div>
 
-                    {invoice.tipo_de_comprobante === 3 && (
-                        <div className="mt-4 pt-4 border-t border-purple-200">
+                    {(invoice.tipo_de_comprobante === 3 || invoice.tipo_de_comprobante === 4) && (
+                        <div className={`mt-4 pt-4 border-t ${invoice.tipo_de_comprobante === 4 ? 'border-amber-200' : 'border-purple-200'}`}>
                             <div className="flex justify-between items-center mb-2">
-                                <h3 className="text-xs font-bold text-purple-700 uppercase tracking-wider">Documento que se Modifica</h3>
+                                <h3 className={`text-xs font-bold uppercase tracking-wider ${invoice.tipo_de_comprobante === 4 ? 'text-amber-700' : 'text-purple-700'}`}>Documento que se Modifica</h3>
                                 <Button type="button" variant="link" size="sm" onClick={() => setIsOriginalDocModalOpen(true)}>
                                     Buscar comprobante...
                                 </Button>
@@ -1298,24 +1320,45 @@ function App() {
                                     <Input id="doc_modifica_numero" name="documento_que_se_modifica_numero" value={invoice.documento_que_se_modifica_numero || ''} onChange={handleInputChange} className="font-mono" />
                                 </Field>
                             </div>
-                            <Field>
-                                <FieldLabel htmlFor="tipo_nota_credito">Motivo (Tipo de Nota de Crédito)</FieldLabel>
-                                <Select
-                                    items={{ '': 'Seleccionar...', ...Object.fromEntries(NOTA_CREDITO_CATALOG.map(item => [String(item.code), `${item.code} - ${item.label}`])) }}
-                                    value={String(invoice.tipo_de_nota_de_credito ?? '')}
-                                    onValueChange={(v) => handleInputChange({ target: { name: 'tipo_de_nota_de_credito', value: v ?? '' } } as any)}
-                                >
-                                    <SelectTrigger id="tipo_nota_credito" className="w-full text-xs"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectGroup>
-                                            <SelectItem value="">Seleccionar...</SelectItem>
-                                            {NOTA_CREDITO_CATALOG.map(item => (
-                                                <SelectItem key={item.code} value={String(item.code)}>{item.code} - {item.label}</SelectItem>
-                                            ))}
-                                        </SelectGroup>
-                                    </SelectContent>
-                                </Select>
-                            </Field>
+                            {invoice.tipo_de_comprobante === 3 ? (
+                                <Field>
+                                    <FieldLabel htmlFor="tipo_nota_credito">Motivo (Tipo de Nota de Crédito)</FieldLabel>
+                                    <Select
+                                        items={{ '': 'Seleccionar...', ...Object.fromEntries(NOTA_CREDITO_CATALOG.map(item => [String(item.code), `${item.code} - ${item.label}`])) }}
+                                        value={String(invoice.tipo_de_nota_de_credito ?? '')}
+                                        onValueChange={(v) => handleInputChange({ target: { name: 'tipo_de_nota_de_credito', value: v ?? '' } } as any)}
+                                    >
+                                        <SelectTrigger id="tipo_nota_credito" className="w-full text-xs"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectGroup>
+                                                <SelectItem value="">Seleccionar...</SelectItem>
+                                                {NOTA_CREDITO_CATALOG.map(item => (
+                                                    <SelectItem key={item.code} value={String(item.code)}>{item.code} - {item.label}</SelectItem>
+                                                ))}
+                                            </SelectGroup>
+                                        </SelectContent>
+                                    </Select>
+                                </Field>
+                            ) : (
+                                <Field>
+                                    <FieldLabel htmlFor="tipo_nota_debito">Motivo (Tipo de Nota de Débito)</FieldLabel>
+                                    <Select
+                                        items={{ '': 'Seleccionar...', ...Object.fromEntries(NOTA_DEBITO_CATALOG.map(item => [String(item.code), `${item.code} - ${item.label}`])) }}
+                                        value={String(invoice.tipo_de_nota_de_debito ?? '')}
+                                        onValueChange={(v) => handleInputChange({ target: { name: 'tipo_de_nota_de_debito', value: v ?? '' } } as any)}
+                                    >
+                                        <SelectTrigger id="tipo_nota_debito" className="w-full text-xs"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectGroup>
+                                                <SelectItem value="">Seleccionar...</SelectItem>
+                                                {NOTA_DEBITO_CATALOG.map(item => (
+                                                    <SelectItem key={item.code} value={String(item.code)}>{item.code} - {item.label}</SelectItem>
+                                                ))}
+                                            </SelectGroup>
+                                        </SelectContent>
+                                    </Select>
+                                </Field>
+                            )}
                         </div>
                     )}
                 </div>
@@ -1325,7 +1368,7 @@ function App() {
             <div className="grid grid-cols-12 gap-3 mb-3 bg-gray-50 p-2.5 rounded border border-gray-100">
                 <div className="col-span-12 md:col-span-3">
                     <FieldLabel className="mb-1 text-xs font-semibold text-gray-600">Condición de Pago</FieldLabel>
-                    {invoice.tipo_de_comprobante === 3 ? (
+                    {invoice.tipo_de_comprobante === 3 || invoice.tipo_de_comprobante === 4 ? (
                         <div className="flex h-8 w-full items-center rounded-lg border bg-gray-100 px-2.5 text-sm text-gray-400 italic">No aplica</div>
                     ) : (
                         <Select
@@ -1638,7 +1681,7 @@ function App() {
                         title={!canSubmit ? `Falta ${missingRequired.join(' y ')}` : undefined}
                         className="w-full bg-white text-primary-800 font-black py-2.5 hover:bg-primary-50 disabled:opacity-50"
                     >
-                        {loading ? 'EMITIENDO...' : invoice.tipo_de_comprobante === 3 ? 'EMITIR NOTA DE CRÉDITO' : 'EMITIR AHORA'}
+                        {loading ? 'EMITIENDO...' : invoice.tipo_de_comprobante === 3 ? 'EMITIR NOTA DE CRÉDITO' : invoice.tipo_de_comprobante === 4 ? 'EMITIR NOTA DE DÉBITO' : 'EMITIR AHORA'}
                     </Button>
                     <Button variant="outline" onClick={handleSaveDraft} className="w-full mt-2 border-white/40 bg-transparent text-white hover:bg-white/10">
                         Guardar borrador
