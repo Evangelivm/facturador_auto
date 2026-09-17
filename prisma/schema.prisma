@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Cliente {
+  id               Int           @id @default(autoincrement())
+  numero_documento String        @unique @db.VarChar(20)
+  tipo_documento   Int           @default(6)
+  denominacion     String        @db.VarChar(255)
+  direccion        String?       @db.VarChar(255)
+  email            String?       @db.VarChar(255)
+  created_at       DateTime      @default(now())
+  updated_at       DateTime      @default(now()) @updatedAt
+  comprobantes     Comprobante[]
+
+  @@map("clientes")
+}
+
+model Comprobante {
+  id                               Int      @id @default(autoincrement())
+  operacion                        String?  @default("generar_comprobante") @db.VarChar(50)
+  tipo_de_comprobante              Int
+  serie                            String   @db.VarChar(10)
+  numero                           Int
+  sunat_transaction                Int?     @default(1)
+
+  cliente_id                       Int?
+  cliente                          Cliente? @relation(fields: [cliente_id], references: [id])
+  cliente_numero_de_documento      String?  @db.VarChar(20)
+  cliente_denominacion             String?  @db.VarChar(255)
+  cliente_direccion                String?  @db.VarChar(255)
+  cliente_email                    String?  @db.VarChar(255)
+
+  fecha_de_emision                 DateTime @db.Date
+  fecha_de_vencimiento             DateTime? @db.Date
+  moneda                           Int?     @default(1)
+  tipo_de_cambio                   Decimal? @db.Decimal(10, 4)
+  porcentaje_de_igv                Decimal? @default(18.00) @db.Decimal(5, 2)
+
+  total_gravada                    Decimal? @default(0.00) @db.Decimal(12, 2)
+  total_inafecta                   Decimal? @default(0.00) @db.Decimal(12, 2)
+  total_exonerada                  Decimal? @default(0.00) @db.Decimal(12, 2)
+  total_igv                        Decimal? @default(0.00) @db.Decimal(12, 2)
+  total_gratuita                   Decimal? @default(0.00) @db.Decimal(12, 2)
+  total_otros_cargos               Decimal? @default(0.00) @db.Decimal(12, 2)
+  total                            Decimal? @default(0.00) @db.Decimal(12, 2)
+
+  detraccion                       Boolean? @default(false)
+  detraccion_codigo                String?  @db.VarChar(10)
+  detraccion_porcentaje            Decimal? @db.Decimal(5, 2)
+  total_detraccion                 Decimal? @db.Decimal(12, 2)
+
+  documento_que_se_modifica_tipo   Int?
+  documento_que_se_modifica_serie  String?  @db.VarChar(10)
+  documento_que_se_modifica_numero Int?
+  tipo_de_nota_de_credito          Int?
+  tipo_de_nota_de_debito           Int?
+
+  observaciones                    String?  @db.Text
+  condicion_de_pago                String?  @db.VarChar(50)
+  medio_de_pago                    String?  @db.VarChar(50)
+  fondo_garantia_monto             Decimal? @db.Decimal(12, 2)
+  orden_compra_numero              String?  @db.VarChar(50)
+  proyecto                         String?  @db.VarChar(100)
+  linea_servicio                   String?  @db.VarChar(100)
+
+  nubefact_enlace_pdf              String?  @db.VarChar(255)
+  nubefact_enlace_xml              String?  @db.VarChar(255)
+  nubefact_enlace_cdr              String?  @db.VarChar(255)
+  nubefact_sunat_description       String?  @db.VarChar(255)
+  nubefact_error                   String?  @db.Text
+
+  estado                           String?  @default("EMITIDO") @db.VarChar(20)
+  motivo_anulacion                 String?  @db.VarChar(255)
+
+  pagado                           Boolean? @default(false)
+  fecha_pago                       DateTime? @db.Date
+  comprobante_pago_data            String?  @db.LongText
+
+  created_at                       DateTime @default(now())
+
+  items                            ComprobanteItem[]
+  cuotas                           ComprobanteCuota[]
+
+  @@map("comprobantes")
+}
+
+model ComprobanteItem {
+  id                      Int         @id @default(autoincrement())
+  comprobante_id          Int
+  comprobante             Comprobante @relation(fields: [comprobante_id], references: [id], onDelete: Cascade)
+  unidad_de_medida        String?     @default("NIU") @db.VarChar(20)
+  codigo                  String?     @db.VarChar(50)
+  descripcion             String?     @db.Text
+  cantidad                Decimal     @db.Decimal(12, 4)
+  valor_unitario          Decimal     @db.Decimal(12, 4)
+  precio_unitario         Decimal     @db.Decimal(12, 4)
+  subtotal                Decimal     @db.Decimal(12, 2)
+  tipo_de_igv             Int?        @default(1)
+  igv                     Decimal     @db.Decimal(12, 2)
+  total                   Decimal     @db.Decimal(12, 2)
+  anticipo_regularizacion Boolean?    @default(false)
+
+  @@map("comprobante_items")
+}
+
+model ComprobanteCuota {
+  id             Int         @id @default(autoincrement())
+  comprobante_id Int
+  comprobante    Comprobante @relation(fields: [comprobante_id], references: [id], onDelete: Cascade)
+  cuota          Int
+  fecha_de_pago  DateTime    @db.Date
+  importe        Decimal     @db.Decimal(12, 2)
+
+  @@map("comprobante_cuotas")
+}
+
+model Proyecto {
+  id         Int      @id @default(autoincrement())
+  nombre     String   @unique @db.VarChar(100)
+  activo     Boolean? @default(true)
+  created_at DateTime @default(now())
+
+  @@map("proyectos")
+}
+
+model LineaServicio {
+  id         Int      @id @default(autoincrement())
+  nombre     String   @unique @db.VarChar(100)
+  activo     Boolean? @default(true)
+  created_at DateTime @default(now())
+
+  @@map("lineas_servicio")
+}
+
+model ApiProfile {
+  id         Int      @id @default(autoincrement())
+  nombre     String   @db.VarChar(100)
+  ruta       String   @db.VarChar(255)
+  token      String   @db.VarChar(255)
+  activo     Boolean? @default(true)
+  created_at DateTime @default(now())
+
+  @@map("api_profiles")
+}
