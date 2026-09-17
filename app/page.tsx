@@ -23,7 +23,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusIcon, XIcon, RefreshCwIcon, FileTextIcon, Loader2Icon } from 'lucide-react';
+import { PlusIcon, XIcon, RefreshCwIcon, FileTextIcon, Loader2Icon, ReceiptIcon, BanIcon } from 'lucide-react';
 
 // Serie con la que se identifica un documento que todavía es un borrador (nunca se envía a
 // NubeFact/SUNAT así). Al emitirlo recién se le asigna la serie y el correlativo real.
@@ -1070,7 +1070,7 @@ function App() {
 
   return (
     <div className="min-h-screen pb-6 font-sans">
-      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200/80 shadow-sm px-4 sm:px-6 py-2.5 flex justify-between items-center">
+      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200/80 shadow-sm px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-3">
               <span className={`hidden sm:flex h-9 w-9 items-center justify-center rounded-xl text-white font-black text-sm shadow-lg shadow-primary-600/30 bg-gradient-to-br ${invoice.tipo_de_comprobante === 3 ? 'from-purple-500 to-fuchsia-600' : 'from-primary-500 to-violet-600'}`}>
                   NF
@@ -1079,6 +1079,18 @@ function App() {
                   {invoice.tipo_de_comprobante === 3 ? 'Nueva Nota de Crédito' : 'Nueva Factura'}
               </h1>
           </div>
+
+          <nav className="flex items-center gap-1 rounded-lg border border-gray-200/80 bg-gray-50/80 p-1 order-3 w-full sm:order-none sm:w-auto">
+              <Button variant="ghost" size="sm" className="flex-1 sm:flex-none text-gray-600 hover:text-gray-900" onClick={() => setComprobantesViewOpen(true)}>
+                  <ReceiptIcon data-icon="inline-start" />
+                  Ver comprobantes
+              </Button>
+              <Button variant="ghost" size="sm" className="flex-1 sm:flex-none text-gray-600 hover:text-gray-900" onClick={() => setBajaViewOpen(true)}>
+                  <BanIcon data-icon="inline-start" />
+                  Comunicaciones de baja
+              </Button>
+          </nav>
+
           <div className="flex items-center gap-3">
              {connStatus === 'connected' ? (
                  <Badge className="gap-2 bg-emerald-50 py-1 pr-3 text-emerald-700 border-emerald-200" title={connMessage}>
@@ -1599,13 +1611,6 @@ function App() {
                     <Button variant="outline" onClick={handleSaveDraft} className="w-full mt-2 border-white/40 bg-transparent text-white hover:bg-white/10">
                         Guardar borrador
                     </Button>
-
-                    <Button variant="link" onClick={() => setComprobantesViewOpen(true)} className="w-full mt-3 text-primary-100 hover:text-white">
-                        Ver comprobantes
-                    </Button>
-                    <Button variant="link" onClick={() => setBajaViewOpen(true)} className="w-full text-primary-100 hover:text-white">
-                        Comunicaciones de baja
-                    </Button>
                   </div>
                 </div>
             </div>
@@ -1635,6 +1640,7 @@ function App() {
       <ComunicacionesBajaView
           isOpen={bajaViewOpen}
           onClose={() => setBajaViewOpen(false)}
+          onOpenComprobantes={() => { setBajaViewOpen(false); setComprobantesViewOpen(true); }}
           onNotify={showToast}
       />
       <ResponseViewer response={response} loading={loading} error={error} onClose={() => { setResponse(null); setError(null); }} />

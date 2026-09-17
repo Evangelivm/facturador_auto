@@ -22,6 +22,7 @@ import { FilterIcon, InboxIcon, XIcon, PlusIcon, RefreshCwIcon, CircleCheckIcon,
 interface ComunicacionesBajaViewProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenComprobantes: () => void;
   onNotify: (message: string, type?: ToastType) => void;
 }
 
@@ -66,7 +67,7 @@ const EstadoBajaBadge: React.FC<{ aceptada?: boolean | null; ticket?: string }> 
     : <Badge variant="destructive">PENDIENTE EN SUNAT</Badge>;
 };
 
-export const ComunicacionesBajaView: React.FC<ComunicacionesBajaViewProps> = ({ isOpen, onClose, onNotify }) => {
+export const ComunicacionesBajaView: React.FC<ComunicacionesBajaViewProps> = ({ isOpen, onClose, onOpenComprobantes, onNotify }) => {
   const [rows, setRows] = useState<ComprobanteRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -230,9 +231,14 @@ export const ComunicacionesBajaView: React.FC<ComunicacionesBajaViewProps> = ({ 
     <div className="fixed inset-0 z-40 overflow-y-auto bg-background">
       <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-background/90 px-3 py-3 shadow-sm backdrop-blur-md sm:px-4 md:px-6">
         <h1 className="text-lg font-bold tracking-tight text-foreground sm:text-xl md:text-2xl">Comunicaciones de Baja</h1>
-        <Button variant="ghost" size="icon" onClick={onClose} title="Cerrar">
-          <XIcon />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={onOpenComprobantes}>
+            Ver comprobantes
+          </Button>
+          <Button variant="ghost" size="icon" onClick={onClose} title="Cerrar">
+            <XIcon />
+          </Button>
+        </div>
       </div>
 
       <div className="w-full p-3 sm:p-4 md:p-6">
