@@ -90,8 +90,8 @@ html, body {
 
 body {
   background:
-    radial-gradient(1200px 600px at 100% -10%, color-mix(in oklab, var(--color-primary-200) 35%, transparent), transparent),
-    radial-gradient(900px 500px at -10% 10%, color-mix(in oklab, #fbcfe8 30%, transparent), transparent),
+    radial-gradient(1200px 600px at 100% -10%, color-mix(in oklab, #c9a179 30%, transparent), transparent),
+    radial-gradient(900px 500px at -10% 10%, color-mix(in oklab, #dcc4a0 30%, transparent), transparent),
     var(--background);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -149,7 +149,7 @@ body {
 }
 
 :root {
-  --background: oklch(1 0 0);
+  --background: #f1e4d3;
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
