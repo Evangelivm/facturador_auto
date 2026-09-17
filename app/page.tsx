@@ -621,7 +621,6 @@ function App() {
           lines.push(`ORDEN DE COMPRA/SERVICIO: ${invoice.orden_compra_numero}`);
       }
 
-      lines.push("");
       lines.push("CUENTAS BANCARIAS:");
       lines.push("Banco BCP (Soles)");
       lines.push("Cta. Cte.: 191-2551705-0-96");
@@ -629,7 +628,6 @@ function App() {
 
       if (invoice.detraccion) {
           lines.push("Banco de la Nación (Detracciones): 00-050-045072");
-          lines.push("");
           lines.push("INFORMACIÓN DE LA DETRACCIÓN:");
 
           const detractionItem = DETRACTION_CATALOG.find(d => d.code === invoice.detraccion_codigo);
