@@ -144,7 +144,8 @@ export const buildExportRow = (row: any): (string | number)[] => {
     pagado ? 'SI' : 'NO',
     formaPago,
     detallePago,
-    row.observaciones || '',
+    // En una sola línea de celda: sin saltos de línea internos ni espacios en blanco de sobra.
+    row.observaciones ? String(row.observaciones).replace(/\s*[\r\n]+\s*/g, ' ').trim() : '',
     row.items_detalle || '',
     esAnulado ? 'SI' : 'NO',
     row.documento_que_se_modifica_tipo ? (SUNAT_TIPO_CODE[Number(row.documento_que_se_modifica_tipo)] || String(row.documento_que_se_modifica_tipo)) : '',
@@ -162,8 +163,9 @@ export const buildExportRow = (row: any): (string | number)[] => {
 
 // Columnas con montos (1-based, según el orden de EXPORT_HEADERS): reciben formato de moneda.
 const CURRENCY_COLS = [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 29];
-// OBSERVACIONES y DETALLE DE LINEAS O ITEMS: texto largo, con salto de línea.
-const WRAP_COLS = [33, 34];
+// DETALLE DE LINEAS O ITEMS: texto largo, sí se muestra con salto de línea. OBSERVACIONES
+// (col 33) queda deliberadamente afuera: va en una sola línea de celda, sin wrap.
+const WRAP_COLS = [34];
 
 const HEADER_FILL = 'FF4F46E5'; // indigo-600: mismo primario que el resto de la app
 const ANULADO_FILL = 'FFFCE8E6';

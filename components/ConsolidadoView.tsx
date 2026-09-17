@@ -131,8 +131,8 @@ export const ConsolidadoView: React.FC<ConsolidadoViewProps> = ({
           <Alert className="mb-4 border-amber-200 bg-amber-50 text-amber-900">
             <AlertDescription className="flex items-start justify-between gap-3">
               <span>
-                <strong>IMPORTANTE:</strong> en esta opción se ven todas las FACTURAS, BOLETAS y
-                NOTAS emitidas por esta empresa.
+                <strong>IMPORTANTE:</strong> en esta opción se ven todas las FACTURAS, y
+                NOTAS emitidas por Maquinarias Ayala.
               </span>
               <button onClick={() => setShowBanner(false)} className="shrink-0 text-amber-700 hover:text-amber-900" title="Cerrar aviso">
                 <XIcon className="size-4" />
