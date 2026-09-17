@@ -1066,7 +1066,7 @@ function App() {
   const unitItems = Object.fromEntries(unitsList.map(u => [u, u]));
 
   return (
-    <div className="min-h-screen pb-12 font-sans">
+    <div className="min-h-screen pb-6 font-sans">
       <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200/80 shadow-sm px-4 sm:px-6 py-2.5 flex justify-between items-center">
           <div className="flex items-center gap-3">
               <span className={`hidden sm:flex h-9 w-9 items-center justify-center rounded-xl text-white font-black text-sm shadow-lg shadow-primary-600/30 bg-gradient-to-br ${invoice.tipo_de_comprobante === 3 ? 'from-purple-500 to-fuchsia-600' : 'from-primary-500 to-violet-600'}`}>
@@ -1099,13 +1099,13 @@ function App() {
           </div>
       </div>
 
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-4 space-y-4">
-        <div className="bg-white/90 backdrop-blur rounded-2xl shadow-md shadow-gray-900/5 border border-gray-100 p-6">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-3 space-y-3">
+        <div className="bg-white/90 backdrop-blur rounded-2xl shadow-md shadow-gray-900/5 border border-gray-100 p-4">
 
             {/* ENCABEZADO FACTURA */}
-            <div className="flex flex-col md:flex-row justify-between gap-6 mb-6 pb-6 border-b border-gray-100">
+            <div className="flex flex-col md:flex-row justify-between gap-4 mb-4 pb-4 border-b border-gray-100">
                 {/* LADO IZQUIERDO: CLIENTE */}
-                <div className="w-full md:w-1/2 space-y-3">
+                <div className="w-full md:w-1/2 space-y-2">
                     <h2 className={sectionTitleClass}>
                         <span className="flex items-center justify-center h-7 w-7 rounded-lg bg-primary-100 text-primary-600">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1138,9 +1138,9 @@ function App() {
                 </div>
 
                 {/* LADO DERECHO: DATOS COMPROBANTE */}
-                <div className={`w-full md:w-1/3 p-4 rounded-xl border shadow-sm ${invoice.tipo_de_comprobante === 3 ? 'bg-gradient-to-br from-purple-50 to-fuchsia-50 border-purple-200' : 'bg-gradient-to-br from-primary-50 to-indigo-50 border-primary-100'}`}>
+                <div className={`w-full md:w-1/3 p-3 rounded-xl border shadow-sm ${invoice.tipo_de_comprobante === 3 ? 'bg-gradient-to-br from-purple-50 to-fuchsia-50 border-purple-200' : 'bg-gradient-to-br from-primary-50 to-indigo-50 border-primary-100'}`}>
                     <FieldLabel className="mb-1 text-xs font-semibold text-gray-600">Tipo de comprobante</FieldLabel>
-                    <div className="flex justify-between items-center mb-3">
+                    <div className="flex justify-between items-center mb-2">
                         <Select
                             items={{ '1': 'FACTURA ELECTRÓNICA', '3': 'NOTA DE CRÉDITO ELECTRÓNICA' }}
                             value={String(invoice.tipo_de_comprobante)}
@@ -1275,7 +1275,7 @@ function App() {
             </div>
 
             {/* CONDICIÓN DE PAGO / PROYECTO / LÍNEA DE SERVICIO — lo que se usa en casi toda factura */}
-            <div className="grid grid-cols-12 gap-4 mb-4 bg-gray-50 p-3 rounded border border-gray-100">
+            <div className="grid grid-cols-12 gap-3 mb-3 bg-gray-50 p-2.5 rounded border border-gray-100">
                 <div className="col-span-12 md:col-span-3">
                     <FieldLabel className="mb-1 text-xs font-semibold text-gray-600">Condición de Pago</FieldLabel>
                     {invoice.tipo_de_comprobante === 3 ? (
@@ -1345,7 +1345,7 @@ function App() {
 
             {/* OPCIONES ADICIONALES: Detracción / Fondo de Garantía / Orden de Compra — no aplican
                 a toda factura, así que quedan plegadas salvo que ya estén en uso. */}
-            <div className={`mb-6 border rounded-xl overflow-hidden transition-colors ${showOpcionesAdicionales ? 'border-amber-200' : 'border-gray-100'}`}>
+            <div className={`mb-4 border rounded-xl overflow-hidden transition-colors ${showOpcionesAdicionales ? 'border-amber-200' : 'border-gray-100'}`}>
                 <button
                     type="button"
                     onClick={() => setShowOpcionesAdicionales(s => !s)}
@@ -1365,7 +1365,7 @@ function App() {
                     </svg>
                 </button>
                 {showOpcionesAdicionales && (
-                    <div className="grid grid-cols-12 gap-4 px-3 pb-3 pt-3 border-t border-amber-100 bg-amber-50/50 animate-fade-in-down">
+                    <div className="grid grid-cols-12 gap-3 px-3 pb-2 pt-2 border-t border-amber-100 bg-amber-50/50 animate-fade-in-down">
                         <div className="col-span-6 md:col-span-2">
                             <FieldLabel className="mb-1 text-xs font-semibold text-gray-600">Detracción</FieldLabel>
                             <Select
@@ -1405,7 +1405,7 @@ function App() {
 
             {/* SECCION EDITOR DE CUOTAS */}
             {isCredit && (
-                <div className="mb-6 border border-blue-200 rounded-lg overflow-hidden animate-fade-in-down shadow-sm">
+                <div className="mb-4 border border-blue-200 rounded-lg overflow-hidden animate-fade-in-down shadow-sm">
                     <div className="bg-blue-50 px-4 py-2 border-b border-blue-200 flex flex-wrap justify-between items-center gap-2">
                         <div className="flex items-center">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1429,7 +1429,7 @@ function App() {
                             Recalcular
                         </Button>
                     </div>
-                    <div className="p-4 bg-white overflow-x-auto">
+                    <div className="p-3 bg-white overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -1484,8 +1484,8 @@ function App() {
                 </div>
             )}
 
-            <div className="mt-6">
-                <div className="flex justify-between items-center mb-3">
+            <div className="mt-4">
+                <div className="flex justify-between items-center mb-2">
                     <h3 className={sectionTitleClass + " mb-0"}>
                         <span className="flex items-center justify-center h-7 w-7 rounded-lg bg-emerald-100 text-emerald-600">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1548,7 +1548,7 @@ function App() {
                 </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-12 gap-4">
                 <div className="md:col-span-8">
                      <div className="flex justify-between items-center mb-1">
                         <FieldLabel className="text-xs font-semibold text-gray-600">Observación</FieldLabel>
@@ -1557,10 +1557,10 @@ function App() {
                             Generar Info Automática
                         </Button>
                      </div>
-                     <Textarea name="observaciones" value={invoice.observaciones} onChange={handleInputChange} className="h-32 text-xs" />
+                     <Textarea name="observaciones" value={invoice.observaciones} onChange={handleInputChange} className="h-20 text-xs" />
                 </div>
                 <div className="md:col-span-4">
-                  <div className="bg-gradient-to-br from-primary-600 via-primary-600 to-violet-700 p-4 rounded-2xl shadow-lg shadow-primary-600/30 text-white">
+                  <div className="bg-gradient-to-br from-primary-600 via-primary-600 to-violet-700 p-3 rounded-2xl shadow-lg shadow-primary-600/30 text-white">
                     <div className="flex justify-between mb-1 text-primary-100"><span className="text-sm">Subtotal:</span><span className="font-medium text-white">{invoice.moneda === 2 ? '$' : 'S/'} {invoice.total_gravada.toFixed(2)}</span></div>
                     <div className="flex justify-between mb-2 text-primary-100"><span className="text-sm">IGV (18%):</span><span className="font-medium text-white">{invoice.moneda === 2 ? '$' : 'S/'} {invoice.total_igv.toFixed(2)}</span></div>
 
@@ -1571,7 +1571,7 @@ function App() {
                         </div>
                     )}
 
-                    <div className="flex justify-between items-baseline border-t border-white/20 pt-3 mb-4">
+                    <div className="flex justify-between items-baseline border-t border-white/20 pt-2 mb-3">
                         <span className="font-bold text-primary-100 text-sm uppercase tracking-wide">Total</span>
                         <span className="font-black text-3xl text-white tracking-tight">{invoice.moneda === 2 ? '$' : 'S/'} {invoice.total.toFixed(2)}</span>
                     </div>
