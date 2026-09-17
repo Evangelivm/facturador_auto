@@ -249,7 +249,7 @@ export const ConsolidadoView: React.FC<ConsolidadoViewProps> = ({
                 const aceptada = isAceptada(row);
                 const pagado = isPagado(row);
                 return (
-                  <div key={row.id} className={`rounded-xl border p-3 shadow-sm ${esAnulado ? 'opacity-60' : 'bg-card'}`}>
+                  <div key={row.id} className={`rounded-xl border p-3 shadow-sm ${esAnulado ? 'border-amber-300 bg-amber-100' : 'bg-card'}`}>
                     <div className="flex items-start justify-between gap-2">
                       <div className={esAnulado ? 'line-through' : ''}>
                         <p className="font-mono font-bold text-foreground">{row.serie}-{row.numero}</p>
@@ -317,9 +317,9 @@ export const ConsolidadoView: React.FC<ConsolidadoViewProps> = ({
                     const esAnulado = row.estado === 'ANULADO';
                     const aceptada = isAceptada(row);
                     const pagado = isPagado(row);
-                    const rowText = esAnulado ? 'line-through text-muted-foreground' : '';
+                    const rowText = esAnulado ? 'line-through' : '';
                     return (
-                      <TableRow key={row.id} className={esAnulado ? 'opacity-70' : undefined}>
+                      <TableRow key={row.id} className={esAnulado ? 'bg-amber-100 hover:bg-amber-100' : undefined}>
                         <TableCell className={rowText}>{formatFecha((row as any).fecha_de_emision)}</TableCell>
                         <TableCell className={rowText}>{SUNAT_TIPO_CODE[row.tipo_de_comprobante] || '-'}</TableCell>
                         <TableCell className={`font-mono ${rowText}`}>{row.serie}</TableCell>
