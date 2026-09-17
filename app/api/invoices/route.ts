@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   saveInvoice,
   getInvoices,
+  getInvoicesForExport,
   getInvoiceById,
   updateInvoiceStatus,
   registrarAnulacion,
@@ -13,12 +14,17 @@ export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const id = searchParams.get('id');
   const status = searchParams.get('status') ?? undefined;
+  const isExport = searchParams.get('export') === '1';
 
   try {
     if (id) {
       const invoice = await getInvoiceById(Number(id));
       if (!invoice) return NextResponse.json({ error: 'Factura no encontrada' }, { status: 404 });
       return NextResponse.json(invoice);
+    }
+    if (isExport) {
+      const invoices = await getInvoicesForExport();
+      return NextResponse.json(invoices);
     }
     const invoices = await getInvoices(status);
     return NextResponse.json(invoices);

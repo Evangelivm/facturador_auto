@@ -225,6 +225,26 @@ export const getInvoices = async (status?: string) => {
   return rows.map(serializeComprobante);
 };
 
+// Trae los comprobantes con el detalle completo (items + tipo de documento del cliente)
+// necesario para el "Consolidado de Facturas, Boletas y Notas" en Excel, con la misma
+// estructura de columnas que exporta NubeFact ("FECHA E", "DOC ENTIDAD", "DETALLE DE LINEAS
+// O ITEMS", etc.). Se pide aparte de getInvoices() porque el listado no necesita los items.
+export const getInvoicesForExport = async () => {
+  const rows = await prisma.comprobante.findMany({
+    orderBy: [{ fecha_de_emision: 'desc' }, { id: 'desc' }],
+    take: 300,
+    include: {
+      cliente: { select: { tipo_documento: true } },
+      items: { select: { descripcion: true } },
+    }
+  });
+  return rows.map(({ cliente, items, ...rest }) => ({
+    ...serializeComprobante(rest),
+    cliente_tipo_de_documento: cliente?.tipo_documento ?? null,
+    items_detalle: items.map(i => i.descripcion).filter(Boolean).join(' || '),
+  }));
+};
+
 // Marca un comprobante como ANULADO (o revierte el estado) sin tocar los enlaces
 // de PDF/XML/CDR originales, a diferencia de updateInvoiceStatus.
 export const setInvoiceEstado = async (id: number, estado: string, motivoAnulacion?: string) => {

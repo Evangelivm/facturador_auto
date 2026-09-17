@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { getInvoices, getInvoiceById } from '@/services/databaseService';
+import { getInvoices, getInvoiceById, getInvoicesForExport } from '@/services/databaseService';
 import { ComprobanteOptionsModal, ComprobanteRow } from './ComprobanteOptionsModal';
 import { ToastType } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ import {
   Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableFooter } from '@/components/ui/table';
-import { SearchIcon, DownloadIcon, FilterIcon, InboxIcon, XIcon, PlusIcon, CircleCheckIcon, CircleXIcon } from 'lucide-react';
+import { SearchIcon, DownloadIcon, FilterIcon, InboxIcon, XIcon, PlusIcon, CircleCheckIcon, CircleXIcon, Loader2Icon } from 'lucide-react';
 
 interface ComprobantesListViewProps {
   isOpen: boolean;
@@ -63,6 +63,128 @@ const isAceptada = (row: ComprobanteRow) =>
 
 const isPagado = (row: ComprobanteRow) => !!row.pagado && Number(row.pagado) !== 0;
 
+interface ListFilters {
+  fechaInicio: string;
+  fechaFin: string;
+  tipoFiltro: string;
+  entidadFiltro: string;
+  anuladoFiltro: string;
+  buscarDocumento: string;
+}
+
+// Predicado de filtro compartido: se usa tanto para la tabla en pantalla (sobre el listado
+// liviano) como para la exportación a Excel (sobre el detalle completo con items), así el
+// Excel exportado siempre coincide exactamente con lo que se ve filtrado en pantalla.
+const matchesFilters = (row: ComprobanteRow, f: ListFilters): boolean => {
+  if (f.fechaInicio || f.fechaFin) {
+    const rowDateKey = toDateKey((row as any).fecha_de_emision);
+    if (f.fechaInicio && rowDateKey < f.fechaInicio) return false;
+    if (f.fechaFin && rowDateKey > f.fechaFin) return false;
+  }
+
+  if (f.tipoFiltro === 'BORRADOR') {
+    if (row.estado !== 'BORRADOR') return false;
+  } else if (f.tipoFiltro) {
+    if (String(row.tipo_de_comprobante) !== f.tipoFiltro) return false;
+  }
+
+  if (f.entidadFiltro) {
+    const q = f.entidadFiltro.toLowerCase();
+    const matches = (row.cliente_denominacion || '').toLowerCase().includes(q) ||
+      (row.cliente_numero_de_documento || '').toLowerCase().includes(q);
+    if (!matches) return false;
+  }
+
+  if (f.anuladoFiltro === 'ANULADOS' && row.estado !== 'ANULADO') return false;
+  if (f.anuladoFiltro === 'NO_ANULADOS' && row.estado === 'ANULADO') return false;
+
+  if (f.buscarDocumento) {
+    const doc = `${row.serie}-${row.numero}`.toLowerCase();
+    if (!doc.includes(f.buscarDocumento.toLowerCase())) return false;
+  }
+
+  return true;
+};
+
+// Encabezados EXACTOS del "Consolidado de Facturas, Boletas y Notas" que exporta NubeFact,
+// para que el Excel generado acá se abra/entienda igual que el que ya conocen del panel de NubeFact.
+const EXPORT_HEADERS = [
+  'FECHA E', 'FECHA V', 'TIPO', 'SERIE', 'NÚMERO', 'DOC ENTIDAD', 'RUC', 'DENOMINACIÓN',
+  'TIPO DE OPERACIÓN', 'MONEDA', 'ORDEN DE COMPRA', 'PLACA DE VEHICULO', 'T/C', 'GRAVADA',
+  'EXONERADA', 'INAFECTA', 'ISC', 'IGV', 'OTROS', 'IMPUESTO BOLSAS', 'TOTAL DESCUENTO', 'TOTAL',
+  'TOTAL ANTICIPO', 'TOTAL PERCEPCIÓN', 'TOTAL INCLUIDO PERCEPCIÓN', 'TOTAL RETENCIÓN',
+  'TOTAL GRATUITA', '¿DETRACCIÓN?', 'IMPORTE DE DETRACCIÓN', '¿PAGADO?', 'FORMA DE PAGO',
+  'DETALLE DE PAGO', 'OBSERVACIONES', 'DETALLE DE LINEAS O ITEMS', '¿ANULADO?',
+  'DOC MODIFICADO - TIPO', 'DOC MODIFICADO - SERIE', 'DOC MODIFICADO - NUMERO',
+  'GUÍAS RELACIONADAS', 'ACEPTADO POR LA SUNAT', 'CÓDIGO SUNAT', 'SUNAT DESCRIPCIÓN DE ESTADO',
+  'SUNAT OBSERVACIONES', '¿BORRADOR?', 'USUARIO',
+];
+
+const buildExportRow = (row: any): (string | number)[] => {
+  const esBorrador = row.estado === 'BORRADOR';
+  const esAnulado = row.estado === 'ANULADO';
+  const pagado = isPagado(row);
+  const totalNum = Number(row.total) || 0;
+  const formaPago = (row.medio_de_pago || '').toLowerCase().includes('credito') ? 'CREDITO' : 'CONTADO';
+
+  let detallePago: string;
+  if (pagado) {
+    detallePago = `PAGADO${row.fecha_pago ? ' - ' + row.fecha_pago : ''}`;
+  } else if (formaPago === 'CREDITO') {
+    detallePago = `POR PAGAR [CRÉDITO] - ${totalNum.toFixed(2)}${row.fecha_de_vencimiento ? ' - ' + row.fecha_de_vencimiento : ''}`;
+  } else {
+    detallePago = `POR PAGAR - ${totalNum.toFixed(2)}`;
+  }
+
+  return [
+    row.fecha_de_emision || '',
+    row.fecha_de_vencimiento || '',
+    SUNAT_TIPO_CODE[row.tipo_de_comprobante] || '',
+    row.serie || '',
+    Number(row.numero) || 0,
+    row.cliente_tipo_de_documento ?? '',
+    row.cliente_numero_de_documento || '',
+    row.cliente_denominacion || '',
+    'VENTA INTERNA',
+    row.moneda === 2 ? 'USD' : 'PEN',
+    row.orden_compra_numero || '',
+    '',
+    row.tipo_de_cambio ? Number(row.tipo_de_cambio) : 0,
+    Number(row.total_gravada) || 0,
+    Number(row.total_exonerada) || 0,
+    Number(row.total_inafecta) || 0,
+    0,
+    Number(row.total_igv) || 0,
+    Number(row.total_otros_cargos) || 0,
+    0,
+    0,
+    totalNum,
+    0,
+    0,
+    0,
+    0,
+    Number(row.total_gratuita) || 0,
+    row.detraccion ? 'SI' : 'NO',
+    Number(row.total_detraccion) || 0,
+    pagado ? 'SI' : 'NO',
+    formaPago,
+    detallePago,
+    row.observaciones || '',
+    row.items_detalle || '',
+    esAnulado ? 'SI' : 'NO',
+    row.documento_que_se_modifica_tipo ? (SUNAT_TIPO_CODE[Number(row.documento_que_se_modifica_tipo)] || String(row.documento_que_se_modifica_tipo)) : '',
+    row.documento_que_se_modifica_serie || '',
+    row.documento_que_se_modifica_numero || '',
+    '',
+    esBorrador ? '' : (isAceptada(row) ? 'SI' : 'NO'),
+    '',
+    row.nubefact_sunat_description || row.nubefact_error || '',
+    '-',
+    esBorrador ? 'SI' : 'NO',
+    '',
+  ];
+};
+
 const EstadoBadge: React.FC<{ estado?: string }> = ({ estado }) => (
   <Badge variant={estado === 'EMITIDO' ? 'default' : estado === 'BORRADOR' ? 'secondary' : 'destructive'}>
     {estado || 'EMITIDO'}
@@ -85,6 +207,7 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
   const [page, setPage] = useState(1);
 
   const [optionsInvoice, setOptionsInvoice] = useState<ComprobanteRow | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const loadInvoices = async () => {
     setLoading(true);
@@ -103,37 +226,10 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
     if (isOpen) loadInvoices();
   }, [isOpen]);
 
+  const activeFilters: ListFilters = { fechaInicio, fechaFin, tipoFiltro, entidadFiltro, anuladoFiltro, buscarDocumento };
+
   const filteredRows = useMemo(() => {
-    return rows.filter(row => {
-      if (fechaInicio || fechaFin) {
-        const rowDateKey = toDateKey((row as any).fecha_de_emision);
-        if (fechaInicio && rowDateKey < fechaInicio) return false;
-        if (fechaFin && rowDateKey > fechaFin) return false;
-      }
-
-      if (tipoFiltro === 'BORRADOR') {
-        if (row.estado !== 'BORRADOR') return false;
-      } else if (tipoFiltro) {
-        if (String(row.tipo_de_comprobante) !== tipoFiltro) return false;
-      }
-
-      if (entidadFiltro) {
-        const q = entidadFiltro.toLowerCase();
-        const matches = (row.cliente_denominacion || '').toLowerCase().includes(q) ||
-          (row.cliente_numero_de_documento || '').toLowerCase().includes(q);
-        if (!matches) return false;
-      }
-
-      if (anuladoFiltro === 'ANULADOS' && row.estado !== 'ANULADO') return false;
-      if (anuladoFiltro === 'NO_ANULADOS' && row.estado === 'ANULADO') return false;
-
-      if (buscarDocumento) {
-        const doc = `${row.serie}-${row.numero}`.toLowerCase();
-        if (!doc.includes(buscarDocumento.toLowerCase())) return false;
-      }
-
-      return true;
-    });
+    return rows.filter(row => matchesFilters(row, activeFilters));
   }, [rows, fechaInicio, fechaFin, tipoFiltro, entidadFiltro, anuladoFiltro, buscarDocumento]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
@@ -165,30 +261,27 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
     }
   };
 
-  const handleDescargaExcel = () => {
-    const header = ['FECHA', 'TIPO', 'SERIE', 'NUM', 'RUC/DNI', 'DENOMINACION', 'MONEDA', 'TOTAL', 'ESTADO', 'ANULADO', 'PROCESO', 'FECHA PAGO'];
-    const csvRows = filteredRows.map(row => [
-      formatFecha((row as any).fecha_de_emision),
-      SUNAT_TIPO_CODE[row.tipo_de_comprobante] || row.tipo_de_comprobante,
-      row.serie,
-      row.numero,
-      row.cliente_numero_de_documento || '',
-      (row.cliente_denominacion || '').replace(/"/g, '""'),
-      row.moneda === 2 ? 'USD' : 'PEN',
-      Number(row.total).toFixed(2),
-      row.estado || 'EMITIDO',
-      row.estado === 'ANULADO' ? 'SI' : 'NO',
-      isPagado(row) ? 'PAGADO' : 'POR COBRAR',
-      (row as any).fecha_pago ? formatFecha((row as any).fecha_pago) : ''
-    ]);
-    const csv = [header, ...csvRows].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `comprobantes_${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  // Genera el mismo "Consolidado de Facturas, Boletas y Notas" en .xlsx que descarga NubeFact
+  // (mismas columnas), pero respetando los filtros que estén activos en pantalla. Se pide el
+  // detalle completo (con items) aparte del listado liviano porque recién ahí se necesita.
+  const handleDescargaExcel = async () => {
+    setExporting(true);
+    try {
+      const XLSX = await import('xlsx');
+      const fullRows = await getInvoicesForExport();
+      const filtered = fullRows.filter((row: any) => matchesFilters(row, activeFilters));
+
+      const worksheet = XLSX.utils.aoa_to_sheet([EXPORT_HEADERS, ...filtered.map(buildExportRow)]);
+      worksheet['!cols'] = EXPORT_HEADERS.map((h) => ({ wch: Math.max(12, Math.min(30, h.length + 4)) }));
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Consolidado');
+      XLSX.writeFile(workbook, `consolidado_comprobantes_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    } catch (e: any) {
+      onNotify('Error al generar el Excel: ' + (e.message || ''), 'error');
+    } finally {
+      setExporting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -297,9 +390,9 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
               </div>
             </Field>
             <Button onClick={loadInvoices}>Aplicar filtros</Button>
-            <Button variant="secondary" onClick={handleDescargaExcel} title="Descargar como Excel/CSV">
-              <DownloadIcon data-icon="inline-start" />
-              Descarga Excel
+            <Button variant="secondary" onClick={handleDescargaExcel} disabled={exporting} title="Descargar consolidado en Excel">
+              {exporting ? <Loader2Icon data-icon="inline-start" className="animate-spin" /> : <DownloadIcon data-icon="inline-start" />}
+              {exporting ? 'Generando...' : 'Descarga Excel'}
             </Button>
           </div>
         </div>
