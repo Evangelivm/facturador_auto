@@ -96,15 +96,64 @@ export const updateInvoiceStatus = async (
   return res.json();
 };
 
-export const anularInvoiceInDb = async (id: number, motivo: string) => {
+export const anularInvoiceInDb = async (
+  id: number,
+  motivo: string,
+  baja?: {
+    ticket?: string;
+    aceptada?: boolean;
+    description?: string;
+    enlace_pdf?: string;
+    enlace_xml?: string;
+    enlace_cdr?: string;
+  }
+) => {
   const res = await fetch('/api/invoices', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id, estado: 'ANULADO', motivo_anulacion: motivo })
+    body: JSON.stringify({
+      id, estado: 'ANULADO', motivo_anulacion: motivo,
+      nubefact_baja_ticket: baja?.ticket,
+      nubefact_baja_aceptada: baja?.aceptada,
+      nubefact_baja_description: baja?.description,
+      nubefact_baja_enlace_pdf: baja?.enlace_pdf,
+      nubefact_baja_enlace_xml: baja?.enlace_xml,
+      nubefact_baja_enlace_cdr: baja?.enlace_cdr,
+    })
   });
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.error || 'Error al registrar la anulación en la base de datos');
+  }
+  return res.json();
+};
+
+// Refresca el estado de un TICKET de baja ya generado, consultado con "consultar_anulacion".
+export const actualizarEstadoBajaEnDb = async (
+  id: number,
+  baja: {
+    aceptada?: boolean;
+    description?: string;
+    enlace_pdf?: string;
+    enlace_xml?: string;
+    enlace_cdr?: string;
+  }
+) => {
+  const res = await fetch('/api/invoices', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id, refresh_baja: true,
+      nubefact_baja_aceptada: baja.aceptada,
+      nubefact_baja_description: baja.description,
+      nubefact_baja_enlace_pdf: baja.enlace_pdf,
+      nubefact_baja_enlace_xml: baja.enlace_xml,
+      nubefact_baja_enlace_cdr: baja.enlace_cdr,
+    })
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Error al consultar el estado de la baja');
   }
   return res.json();
 };

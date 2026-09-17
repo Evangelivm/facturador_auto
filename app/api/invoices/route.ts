@@ -4,7 +4,8 @@ import {
   getInvoices,
   getInvoiceById,
   updateInvoiceStatus,
-  setInvoiceEstado,
+  registrarAnulacion,
+  actualizarEstadoBaja,
   deleteInvoice,
 } from '@/database/invoiceRepository';
 
@@ -41,12 +42,38 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, estado, motivo_anulacion, nubefact_enlace_pdf, nubefact_enlace_xml, nubefact_enlace_cdr, nubefact_sunat_description } = body;
+    const {
+      id, estado, motivo_anulacion, nubefact_enlace_pdf, nubefact_enlace_xml, nubefact_enlace_cdr, nubefact_sunat_description,
+      refresh_baja, nubefact_baja_ticket, nubefact_baja_aceptada, nubefact_baja_description,
+      nubefact_baja_enlace_pdf, nubefact_baja_enlace_xml, nubefact_baja_enlace_cdr,
+    } = body;
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
 
-    // Anular un comprobante no debe pisar sus enlaces de PDF/XML/CDR originales
+    // Refresca el estado de un TICKET de "comunicación de baja" ya generado
+    // (OPERACIÓN "consultar_anulacion" del manual de NubeFact), sin cambiar el estado local.
+    if (refresh_baja) {
+      const result = await actualizarEstadoBaja(Number(id), {
+        aceptada: nubefact_baja_aceptada,
+        description: nubefact_baja_description,
+        enlace_pdf: nubefact_baja_enlace_pdf,
+        enlace_xml: nubefact_baja_enlace_xml,
+        enlace_cdr: nubefact_baja_enlace_cdr,
+      });
+      return NextResponse.json(result);
+    }
+
+    // Anular un comprobante no debe pisar sus enlaces de PDF/XML/CDR originales. Se registra
+    // además el TICKET de la Comunicación de Baja (OPERACIÓN "generar_anulacion").
     if (estado === 'ANULADO') {
-      const result = await setInvoiceEstado(Number(id), estado, motivo_anulacion);
+      const result = await registrarAnulacion(Number(id), {
+        motivo: motivo_anulacion,
+        ticket: nubefact_baja_ticket,
+        aceptada: nubefact_baja_aceptada,
+        description: nubefact_baja_description,
+        enlace_pdf: nubefact_baja_enlace_pdf,
+        enlace_xml: nubefact_baja_enlace_xml,
+        enlace_cdr: nubefact_baja_enlace_cdr,
+      });
       return NextResponse.json(result);
     }
 

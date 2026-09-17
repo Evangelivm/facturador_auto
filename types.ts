@@ -116,6 +116,9 @@ export interface NubeFactResponse {
   enlace_del_pdf?: string;
   enlace_del_xml?: string;
   enlace_del_cdr?: string;
+  // TICKET asignado por SUNAT a una Comunicación de Baja / Anulación ("generar_anulacion" /
+  // "consultar_anulacion").
+  sunat_ticket_numero?: string;
   aceptada_por_sunat?: boolean;
   sunat_description?: string;
   sunat_note?: any;

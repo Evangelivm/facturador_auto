@@ -77,6 +77,18 @@ model Comprobante {
   estado                           String?  @default("EMITIDO") @db.VarChar(20)
   motivo_anulacion                 String?  @db.VarChar(255)
 
+  // Comunicación de baja / anulación ante SUNAT (OPERACIÓN "generar_anulacion" /
+  // "consultar_anulacion" del manual de NubeFact). Se guarda aparte de los campos
+  // nubefact_* de arriba porque corresponden al PDF/XML/CDR del TICKET de baja,
+  // no al comprobante original.
+  fecha_anulacion                  DateTime? @db.Date
+  nubefact_baja_ticket              String?  @db.VarChar(50)
+  nubefact_baja_aceptada            Boolean?
+  nubefact_baja_description         String?  @db.VarChar(255)
+  nubefact_baja_enlace_pdf          String?  @db.VarChar(255)
+  nubefact_baja_enlace_xml          String?  @db.VarChar(255)
+  nubefact_baja_enlace_cdr          String?  @db.VarChar(255)
+
   pagado                           Boolean? @default(false)
   fecha_pago                       DateTime? @db.Date
   comprobante_pago_data            String?  @db.LongText

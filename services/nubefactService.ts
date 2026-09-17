@@ -120,6 +120,38 @@ export const anularComprobante = async (
 };
 
 /**
+ * Consulta el estado de un TICKET de Comunicación de Baja / Anulación ya generado ante SUNAT.
+ * Corresponde a la OPERACIÓN 4 del manual de NubeFact: "consultar_anulacion". Necesario porque
+ * SUNAT valida el ticket de forma asíncrona: "generar_anulacion" a veces todavía no trae si
+ * fue aceptada.
+ */
+export const consultarAnulacion = async (
+  params: { tipo_de_comprobante: number; serie: string; numero: number }
+): Promise<NubeFactResponse> => {
+  try {
+    const response = await fetch('/api/proxy/nubefact', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        data: {
+          operacion: 'consultar_anulacion',
+          tipo_de_comprobante: params.tipo_de_comprobante,
+          serie: params.serie,
+          numero: params.numero
+        }
+      })
+    });
+
+    return await handleResponse(response);
+  } catch (error: any) {
+    console.error("Error consultando la anulación:", error);
+    throw new Error(error.message || "Error desconocido al consultar el estado de la anulación");
+  }
+};
+
+/**
  * Checks connectivity with NubeFact API via the local backend proxy. No recibe credenciales:
  * el proxy las lee de las variables de entorno del servidor (NUBEFACT_ROUTE / NUBEFACT_TOKEN).
  */

@@ -22,6 +22,7 @@ interface ComprobantesListViewProps {
   onClose: () => void;
   onSelectInvoice: (invoice: any) => void;
   onGenerateNew: (invoice: ComprobanteRow, targetTipo: number) => void;
+  onOpenBajas: () => void;
   onNotify: (message: string, type?: ToastType) => void;
 }
 
@@ -69,7 +70,7 @@ const EstadoBadge: React.FC<{ estado?: string }> = ({ estado }) => (
 );
 
 export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
-  isOpen, onClose, onSelectInvoice, onGenerateNew, onNotify
+  isOpen, onClose, onSelectInvoice, onGenerateNew, onOpenBajas, onNotify
 }) => {
   const [rows, setRows] = useState<ComprobanteRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -197,6 +198,9 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
       <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-background/90 px-3 py-3 shadow-sm backdrop-blur-md sm:px-4 md:px-6">
         <h1 className="text-lg font-bold tracking-tight text-foreground sm:text-xl md:text-2xl">Comprobantes</h1>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={onOpenBajas}>
+            Comunicaciones de baja
+          </Button>
           <Button onClick={onClose}>
             <PlusIcon data-icon="inline-start" />
             Emitir comprobante

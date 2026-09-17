@@ -66,6 +66,7 @@ function serializeComprobante(c: any) {
     fecha_de_emision: formatDateForFrontend(c.fecha_de_emision),
     fecha_de_vencimiento: c.fecha_de_vencimiento ? formatDateForFrontend(c.fecha_de_vencimiento) : '',
     fecha_pago: c.fecha_pago ? formatDateForFrontend(c.fecha_pago) : null,
+    fecha_anulacion: c.fecha_anulacion ? formatDateForFrontend(c.fecha_anulacion) : null,
     tipo_de_cambio: c.tipo_de_cambio != null ? String(toNum(c.tipo_de_cambio)) : undefined,
     porcentaje_de_igv: c.porcentaje_de_igv != null ? toNum(c.porcentaje_de_igv) : undefined,
     total_gravada: c.total_gravada != null ? toNum(c.total_gravada) : undefined,
@@ -80,6 +81,7 @@ function serializeComprobante(c: any) {
     total_detraccion: c.total_detraccion != null ? toNum(c.total_detraccion) : undefined,
     fondo_garantia_monto: c.fondo_garantia_monto != null ? toNum(c.fondo_garantia_monto) : undefined,
     pagado: Boolean(c.pagado),
+    nubefact_baja_aceptada: c.nubefact_baja_aceptada != null ? Boolean(c.nubefact_baja_aceptada) : null,
   };
 }
 
@@ -214,6 +216,9 @@ export const getInvoices = async (status?: string) => {
       estado: true, motivo_anulacion: true,
       nubefact_enlace_pdf: true, nubefact_enlace_xml: true, nubefact_enlace_cdr: true,
       nubefact_sunat_description: true, nubefact_error: true,
+      fecha_anulacion: true, nubefact_baja_ticket: true, nubefact_baja_aceptada: true,
+      nubefact_baja_description: true, nubefact_baja_enlace_pdf: true,
+      nubefact_baja_enlace_xml: true, nubefact_baja_enlace_cdr: true,
       pagado: true, fecha_pago: true, created_at: true,
     }
   });
@@ -226,6 +231,63 @@ export const setInvoiceEstado = async (id: number, estado: string, motivoAnulaci
   await prisma.comprobante.update({
     where: { id },
     data: { estado, motivo_anulacion: motivoAnulacion || null }
+  });
+  return { success: true };
+};
+
+// Registra la Comunicación de Baja / Anulación (OPERACIÓN "generar_anulacion" del manual de
+// NubeFact) con el TICKET y los enlaces que devuelve NubeFact para ese trámite ante la SUNAT.
+export const registrarAnulacion = async (
+  id: number,
+  data: {
+    motivo: string;
+    ticket?: string;
+    aceptada?: boolean;
+    description?: string;
+    enlace_pdf?: string;
+    enlace_xml?: string;
+    enlace_cdr?: string;
+  }
+) => {
+  await prisma.comprobante.update({
+    where: { id },
+    data: {
+      estado: 'ANULADO',
+      motivo_anulacion: data.motivo,
+      fecha_anulacion: new Date(),
+      nubefact_baja_ticket: data.ticket || null,
+      nubefact_baja_aceptada: data.aceptada ?? null,
+      nubefact_baja_description: data.description || null,
+      nubefact_baja_enlace_pdf: data.enlace_pdf || null,
+      nubefact_baja_enlace_xml: data.enlace_xml || null,
+      nubefact_baja_enlace_cdr: data.enlace_cdr || null,
+    }
+  });
+  return { success: true };
+};
+
+// Refresca el estado de un TICKET de baja ya generado (OPERACIÓN "consultar_anulacion"):
+// SUNAT valida el ticket de forma asíncrona, así que la respuesta inmediata de
+// "generar_anulacion" a veces todavía no trae si fue aceptada.
+export const actualizarEstadoBaja = async (
+  id: number,
+  data: {
+    aceptada?: boolean;
+    description?: string;
+    enlace_pdf?: string;
+    enlace_xml?: string;
+    enlace_cdr?: string;
+  }
+) => {
+  await prisma.comprobante.update({
+    where: { id },
+    data: {
+      nubefact_baja_aceptada: data.aceptada ?? null,
+      nubefact_baja_description: data.description || null,
+      nubefact_baja_enlace_pdf: data.enlace_pdf || null,
+      nubefact_baja_enlace_xml: data.enlace_xml || null,
+      nubefact_baja_enlace_cdr: data.enlace_cdr || null,
+    }
   });
   return { success: true };
 };

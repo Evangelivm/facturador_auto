@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { anularComprobante, consultarComprobante } from '@/services/nubefactService';
-import { anularInvoiceInDb, deleteInvoiceFromDb, updateInvoiceStatus, registrarPagoEnDb } from '@/services/databaseService';
+import { anularComprobante, consultarComprobante, consultarAnulacion } from '@/services/nubefactService';
+import { anularInvoiceInDb, deleteInvoiceFromDb, updateInvoiceStatus, registrarPagoEnDb, actualizarEstadoBajaEnDb } from '@/services/databaseService';
 import { ToastType } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,13 @@ export interface ComprobanteRow {
   nubefact_enlace_cdr?: string;
   nubefact_sunat_description?: string;
   nubefact_error?: string;
+  fecha_anulacion?: string;
+  nubefact_baja_ticket?: string;
+  nubefact_baja_aceptada?: boolean | null;
+  nubefact_baja_description?: string;
+  nubefact_baja_enlace_pdf?: string;
+  nubefact_baja_enlace_xml?: string;
+  nubefact_baja_enlace_cdr?: string;
   pagado?: boolean | number;
   fecha_pago?: string;
   comprobante_pago_data?: string;
@@ -57,6 +64,7 @@ export const ComprobanteOptionsModal: React.FC<ComprobanteOptionsModalProps> = (
   const [anulacionResult, setAnulacionResult] = useState<any>(null);
   const [localError, setLocalError] = useState<string | null>(null);
   const [consultando, setConsultando] = useState(false);
+  const [consultandoBaja, setConsultandoBaja] = useState(false);
   const [showPagoForm, setShowPagoForm] = useState(false);
   const [pagoFecha, setPagoFecha] = useState('');
   const [pagoArchivoData, setPagoArchivoData] = useState<string | null>(null);
@@ -71,6 +79,7 @@ export const ComprobanteOptionsModal: React.FC<ComprobanteOptionsModalProps> = (
       setAnulacionResult(null);
       setLocalError(null);
       setConsultando(false);
+      setConsultandoBaja(false);
       setShowPagoForm(false);
       setPagoFecha(new Date().toISOString().slice(0, 10));
       setPagoArchivoData(null);
@@ -132,7 +141,14 @@ export const ComprobanteOptionsModal: React.FC<ComprobanteOptionsModalProps> = (
         throw new Error(typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg));
       }
 
-      await anularInvoiceInDb(invoice.id, motivo.trim());
+      await anularInvoiceInDb(invoice.id, motivo.trim(), {
+        ticket: result.sunat_ticket_numero,
+        aceptada: result.aceptada_por_sunat,
+        description: result.sunat_description,
+        enlace_pdf: result.enlace_del_pdf,
+        enlace_xml: result.enlace_del_xml,
+        enlace_cdr: result.enlace_del_cdr,
+      });
       setAnulacionResult(result);
       setShowAnularForm(false);
       onChanged();
@@ -221,6 +237,45 @@ export const ComprobanteOptionsModal: React.FC<ComprobanteOptionsModalProps> = (
       onNotify('No se pudo consultar el estado en SUNAT: ' + (e.message || ''), 'error');
     } finally {
       setConsultando(false);
+    }
+  };
+
+  // Consulta el estado real del TICKET de baja ante SUNAT (OPERACIÓN "consultar_anulacion"):
+  // el ticket se valida de forma asíncrona, "generar_anulacion" a veces no trae aún si fue aceptada.
+  const handleConsultarBaja = async () => {
+    if (!invoice) return;
+    setConsultandoBaja(true);
+    setLocalError(null);
+    try {
+      const result = await consultarAnulacion({
+        tipo_de_comprobante: invoice.tipo_de_comprobante,
+        serie: invoice.serie,
+        numero: invoice.numero
+      });
+
+      if ((result as any).errors) {
+        const errMsg = (result as any).errors;
+        throw new Error(typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg));
+      }
+
+      await actualizarEstadoBajaEnDb(invoice.id, {
+        aceptada: result.aceptada_por_sunat,
+        description: result.sunat_description,
+        enlace_pdf: result.enlace_del_pdf,
+        enlace_xml: result.enlace_del_xml,
+        enlace_cdr: result.enlace_del_cdr,
+      });
+      onChanged();
+      onNotify(
+        result.aceptada_por_sunat
+          ? `SUNAT aceptó la baja de ${invoice.serie}-${invoice.numero}.`
+          : (result.sunat_description || 'SUNAT todavía no confirma esta baja, vuelve a intentar en unos minutos.'),
+        result.aceptada_por_sunat ? 'success' : 'info'
+      );
+    } catch (e: any) {
+      onNotify('No se pudo consultar el estado de la baja: ' + (e.message || ''), 'error');
+    } finally {
+      setConsultandoBaja(false);
     }
   };
 
@@ -320,6 +375,26 @@ export const ComprobanteOptionsModal: React.FC<ComprobanteOptionsModalProps> = (
             <AlertDescription>
               <p className="font-semibold">Este comprobante ya fue ANULADO.</p>
               {invoice.motivo_anulacion && <p>Motivo: {invoice.motivo_anulacion}</p>}
+              {invoice.fecha_anulacion && <p>Fecha de baja: {invoice.fecha_anulacion}</p>}
+              {invoice.nubefact_baja_ticket && <p>Ticket SUNAT: {invoice.nubefact_baja_ticket}</p>}
+              <p className={invoice.nubefact_baja_aceptada ? 'flex items-center gap-1 text-emerald-700' : 'flex items-center gap-1 text-muted-foreground'}>
+                {invoice.nubefact_baja_aceptada ? <CircleCheckIcon className="size-4" /> : <CircleXIcon className="size-4" />}
+                {invoice.nubefact_baja_aceptada ? 'Baja aceptada por la SUNAT' : 'La SUNAT todavía no confirma esta baja'}
+              </p>
+              {invoice.nubefact_baja_description && <p>Descripción: {invoice.nubefact_baja_description}</p>}
+              {invoice.nubefact_baja_enlace_pdf && (
+                <p>
+                  <a href={invoice.nubefact_baja_enlace_pdf} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                    Ver PDF de la comunicación de baja
+                  </a>
+                </p>
+              )}
+              {!invoice.nubefact_baja_aceptada && invoice.nubefact_baja_ticket && (
+                <Button variant="outline" size="sm" className="mt-2" disabled={consultandoBaja} onClick={handleConsultarBaja}>
+                  <RefreshCwIcon data-icon="inline-start" className={consultandoBaja ? 'animate-spin' : ''} />
+                  {consultandoBaja ? 'Consultando...' : 'Consultar estado de la baja en SUNAT'}
+                </Button>
+              )}
             </AlertDescription>
           </Alert>
         ) : !showAnularForm ? (

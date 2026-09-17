@@ -13,6 +13,7 @@ import { ClientSearch } from '@/components/ClientSearch';
 import { InputModal } from '@/components/InputModal';
 import { InvoiceListModal } from '@/components/InvoiceListModal';
 import { ComprobantesListView } from '@/components/ComprobantesListView';
+import { ComunicacionesBajaView } from '@/components/ComunicacionesBajaView';
 import { ComprobanteRow } from '@/components/ComprobanteOptionsModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -246,6 +247,8 @@ function App() {
 
   // Estado para la vista completa de "Comprobantes" (listado, filtros, anulación)
   const [comprobantesViewOpen, setComprobantesViewOpen] = useState(false);
+  // Estado para la vista de "Comunicaciones de Baja" (anulaciones ante SUNAT y su ticket)
+  const [bajaViewOpen, setBajaViewOpen] = useState(false);
 
   // Notificaciones tipo "toast" (reemplazan los alert() nativos del navegador)
   const showToast = (message: string, type: ToastType = 'success') => {
@@ -1600,6 +1603,9 @@ function App() {
                     <Button variant="link" onClick={() => setComprobantesViewOpen(true)} className="w-full mt-3 text-primary-100 hover:text-white">
                         Ver comprobantes
                     </Button>
+                    <Button variant="link" onClick={() => setBajaViewOpen(true)} className="w-full text-primary-100 hover:text-white">
+                        Comunicaciones de baja
+                    </Button>
                   </div>
                 </div>
             </div>
@@ -1623,6 +1629,12 @@ function App() {
           onClose={() => setComprobantesViewOpen(false)}
           onSelectInvoice={handleSelectInvoiceFromList}
           onGenerateNew={handleGenerateNewFromInvoice}
+          onOpenBajas={() => { setComprobantesViewOpen(false); setBajaViewOpen(true); }}
+          onNotify={showToast}
+      />
+      <ComunicacionesBajaView
+          isOpen={bajaViewOpen}
+          onClose={() => setBajaViewOpen(false)}
           onNotify={showToast}
       />
       <ResponseViewer response={response} loading={loading} error={error} onClose={() => { setResponse(null); setError(null); }} />
