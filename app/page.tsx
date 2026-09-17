@@ -816,7 +816,27 @@ function App() {
               await resetFormForNextInvoice();
           } catch (dbError) {
               console.error("No se pudo guardar en BD local:", dbError);
-              // Don't block the UI, just log it
+              // La SUNAT YA aceptó este comprobante (consumió el correlativo real) aunque no se
+              // pudo guardar localmente. Si se sigue como si nada, el próximo cálculo de
+              // correlativo (que solo mira la BD local) no lo va a ver y va a repetir este mismo
+              // número — NubeFact lo rechazaría como duplicado. Se avisa fuerte y se adelanta el
+              // correlativo en memoria para esta sesión.
+              showToast(
+                  `${invoicePayload.serie}-${invoicePayload.numero} fue ACEPTADO por SUNAT pero no se pudo guardar en el sistema local (revisa tu conexión a la base de datos). Anota este número: no lo reutilices.`,
+                  'error'
+              );
+              setIsExistingRecord(false);
+              setInvoice({
+                  ...initialInvoice,
+                  fecha_de_emision: getTodayForInput(),
+                  serie: serieToUse,
+                  numero: numeroToUse + 1,
+              });
+              setItems([{ ...initialItem, id: generateId() }]);
+              setNumCuotas(0);
+              setCuotas([]);
+              setFirstInstallmentDate("");
+              setShowOpcionesAdicionales(true);
           }
       }
     } catch (err: any) {
