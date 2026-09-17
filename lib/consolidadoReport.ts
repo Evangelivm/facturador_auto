@@ -160,16 +160,81 @@ export const buildExportRow = (row: any): (string | number)[] => {
   ];
 };
 
-// Arma el .xlsx y dispara la descarga en el navegador. Se usa desde "Comprobantes" y
-// "Consolidado" para no duplicar la generación del archivo.
+// Columnas con montos (1-based, según el orden de EXPORT_HEADERS): reciben formato de moneda.
+const CURRENCY_COLS = [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 29];
+// OBSERVACIONES y DETALLE DE LINEAS O ITEMS: texto largo, con salto de línea.
+const WRAP_COLS = [33, 34];
+
+const HEADER_FILL = 'FF4F46E5'; // indigo-600: mismo primario que el resto de la app
+const ANULADO_FILL = 'FFFCE8E6';
+const ANULADO_FONT = 'FFB91C1C';
+const PAGADO_FILL = 'FFECFDF5';
+const BORRADOR_FILL = 'FFF3F4F6';
+
+// Arma el .xlsx (con colores, igual que el resto de la app: filas anuladas en rojo, pagadas en
+// verde, borradores en gris) y dispara la descarga en el navegador. Se usa desde "Comprobantes"
+// y "Consolidado" para no duplicar la generación del archivo. La librería "xlsx" (SheetJS free)
+// no escribe estilos al guardar, por eso se usa "exceljs" en su lugar.
 export const exportConsolidadoExcel = async (fullRows: any[], filters: ListFilters, filenamePrefix: string) => {
-  const XLSX = await import('xlsx');
+  const imported: any = await import('exceljs');
+  const ExcelJS = imported.Workbook ? imported : imported.default;
   const filtered = fullRows.filter((row: any) => matchesFilters(row, filters));
 
-  const worksheet = XLSX.utils.aoa_to_sheet([EXPORT_HEADERS, ...filtered.map(buildExportRow)]);
-  worksheet['!cols'] = EXPORT_HEADERS.map((h) => ({ wch: Math.max(12, Math.min(30, h.length + 4)) }));
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'Facturador Auto';
+  workbook.created = new Date();
 
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Consolidado');
-  XLSX.writeFile(workbook, `${filenamePrefix}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  const worksheet = workbook.addWorksheet('Consolidado', {
+    views: [{ state: 'frozen', ySplit: 1 }],
+  });
+
+  worksheet.columns = EXPORT_HEADERS.map((header: string) => ({
+    header,
+    width: Math.max(12, Math.min(30, header.length + 4)),
+  }));
+
+  const headerRow = worksheet.getRow(1);
+  headerRow.height = 24;
+  headerRow.eachCell((cell: any) => {
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: HEADER_FILL } };
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+  });
+
+  filtered.forEach((row: any) => {
+    const excelRow = worksheet.addRow(buildExportRow(row));
+
+    CURRENCY_COLS.forEach((col) => { excelRow.getCell(col).numFmt = '#,##0.00'; });
+    WRAP_COLS.forEach((col) => { excelRow.getCell(col).alignment = { wrapText: true, vertical: 'top' }; });
+
+    const esAnulado = row.estado === 'ANULADO';
+    const esBorrador = row.estado === 'BORRADOR';
+    const esPagado = !!row.pagado && Number(row.pagado) !== 0;
+
+    if (esAnulado) {
+      excelRow.eachCell((cell: any) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: ANULADO_FILL } };
+        cell.font = { ...(cell.font || {}), color: { argb: ANULADO_FONT }, strike: true };
+      });
+    } else if (esBorrador) {
+      excelRow.eachCell((cell: any) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BORRADOR_FILL } };
+      });
+    } else if (esPagado) {
+      excelRow.eachCell((cell: any) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: PAGADO_FILL } };
+      });
+    }
+  });
+
+  worksheet.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: EXPORT_HEADERS.length } };
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${filenamePrefix}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+  a.click();
+  URL.revokeObjectURL(url);
 };
