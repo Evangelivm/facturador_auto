@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { anularComprobante, consultarComprobante, consultarAnulacion } from '@/services/nubefactService';
 import { anularInvoiceInDb, deleteInvoiceFromDb, updateInvoiceStatus, registrarPagoEnDb, actualizarEstadoBajaEnDb } from '@/services/databaseService';
 import { ToastType } from '@/types';
+import { formatFecha } from '@/lib/consolidadoReport';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -326,7 +327,7 @@ export const ComprobanteOptionsModal: React.FC<ComprobanteOptionsModalProps> = (
             <h3 className="mb-2 text-xs font-bold tracking-wider text-muted-foreground uppercase">Proceso de Pago</h3>
             {estaPagado ? (
               <div className="text-sm">
-                <p className="font-semibold text-emerald-700">✔ PAGADO{invoice.fecha_pago ? ` el ${new Date(invoice.fecha_pago).toLocaleDateString('es-PE')}` : ''}</p>
+                <p className="font-semibold text-emerald-700">✔ PAGADO{invoice.fecha_pago ? ` el ${formatFecha(invoice.fecha_pago)}` : ''}</p>
                 {invoice.comprobante_pago_data && (
                   <a href={invoice.comprobante_pago_data} target="_blank" rel="noreferrer" className="text-primary hover:underline">
                     Ver constancia de pago

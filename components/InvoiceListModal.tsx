@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { getInvoices, getInvoiceById } from '@/services/databaseService';
 import { InvoiceData } from '@/types';
+import { formatFecha } from '@/lib/consolidadoReport';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -94,7 +95,7 @@ export const InvoiceListModal: React.FC<InvoiceListProps> = ({ onSelectInvoice, 
               <TableBody>
                 {invoices.map((inv) => (
                   <TableRow key={inv.id}>
-                    <TableCell>{new Date(inv.fecha_de_emision).toLocaleDateString()}</TableCell>
+                    <TableCell>{formatFecha(inv.fecha_de_emision)}</TableCell>
                     <TableCell className="font-mono">{inv.serie}-{inv.numero}</TableCell>
                     <TableCell>{inv.cliente_denominacion}</TableCell>
                     <TableCell className="text-right font-bold">
