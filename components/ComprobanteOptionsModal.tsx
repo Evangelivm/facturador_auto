@@ -290,7 +290,9 @@ export const ComprobanteOptionsModal: React.FC<ComprobanteOptionsModalProps> = (
   const esAnulado = invoice.estado === 'ANULADO';
   const estaPagado = !!invoice.pagado && Number(invoice.pagado) !== 0;
   const enviada = !esBorrador;
-  const aceptada = enviada && !esAnulado && !invoice.nubefact_error && !!invoice.nubefact_sunat_description;
+  // "Aceptada por SUNAT" es un hecho histórico independiente de si luego se anuló: un
+  // comprobante anulado sigue habiendo sido aceptado por SUNAT al momento de emitirse.
+  const aceptada = enviada && !invoice.nubefact_error && !!invoice.nubefact_sunat_description;
 
   return (
     <Dialog open={isOpen} onOpenChange={(next) => { if (!next) onClose(); }}>
