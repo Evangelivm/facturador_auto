@@ -72,13 +72,6 @@ export const ResponseViewer: React.FC<ResponseViewerProps> = ({ response, loadin
                 </Button>
               )}
             </div>
-
-            <div className="border-t pt-3">
-              <p className="mb-2 text-sm font-medium text-foreground">Detalles Técnicos</p>
-              <div className="max-h-40 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs">
-                <pre>{JSON.stringify(response, null, 2)}</pre>
-              </div>
-            </div>
           </div>
         )}
       </DialogContent>
