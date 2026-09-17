@@ -289,6 +289,10 @@ function App() {
         setInvoice(prev => (Number(prev.numero) === nextNumero ? prev : { ...prev, numero: nextNumero }));
       } catch (e) {
         console.error('No se pudo calcular el siguiente correlativo automáticamente:', e);
+        // 0 = sentinel: bloquea la emisión (ver missingRequired) en vez de dejar un número que
+        // podría no ser el correlativo real si la consulta falló.
+        setInvoice(prev => (Number(prev.numero) === 0 ? prev : { ...prev, numero: 0 }));
+        showToast('No se pudo calcular el siguiente correlativo (revisa tu conexión). Verifica el número antes de emitir.', 'error');
       }
     })();
     return () => { cancelled = true; };
@@ -672,7 +676,9 @@ function App() {
   // recién guardado, ese efecto no se dispararía y el número se quedaría pegado.
   const resetFormForNextInvoice = async () => {
       setIsExistingRecord(false);
-      let nextNumero = 1;
+      // 0 = sentinel: si falla el cálculo, NO se debe asumir "1" (pisaría el correlativo real).
+      // canSubmit lo bloquea hasta que el usuario verifique/corrija el número manualmente.
+      let nextNumero = 0;
       try {
           const invoices = await getInvoices();
           const max = invoices.reduce((acc: number, inv: any) => (
@@ -682,6 +688,7 @@ function App() {
           nextNumero = max + 1;
       } catch (e) {
           console.error('No se pudo calcular el siguiente correlativo:', e);
+          showToast('No se pudo calcular el siguiente correlativo (revisa tu conexión). Verifica el número antes de emitir.', 'error');
       }
       setInvoice({
           ...initialInvoice,
@@ -1064,6 +1071,7 @@ function App() {
   const missingRequired: string[] = [];
   if (!invoice.cliente_numero_de_documento) missingRequired.push('el documento del cliente');
   if (items.length === 0 || !items.some(it => it.descripcion.trim() && it.cantidad > 0)) missingRequired.push('al menos un ítem con descripción');
+  if (!Number(invoice.numero) || Number(invoice.numero) <= 0) missingRequired.push('un número de comprobante válido (no se pudo calcular el correlativo automáticamente, revisa tu conexión)');
   const canSubmit = missingRequired.length === 0;
 
   const unitItems = Object.fromEntries(unitsList.map(u => [u, u]));
