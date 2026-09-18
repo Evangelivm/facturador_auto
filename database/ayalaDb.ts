@@ -1,4 +1,4 @@
-import mariadb from 'mariadb';
+import mariadb, { type Pool } from 'mariadb';
 
 // Pool de conexión aparte para la base de datos de "ayala" (ayala_back), usada
 // solo para leer la tabla `empresas_2025` desde el buscador de clientes.
@@ -15,7 +15,7 @@ function createPool() {
   });
 }
 
-const globalForAyala = globalThis as unknown as { ayalaPool?: mariadb.Pool };
+const globalForAyala = globalThis as unknown as { ayalaPool?: Pool };
 
 export const ayalaPool = globalForAyala.ayalaPool ?? createPool();
 
