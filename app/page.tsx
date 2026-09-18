@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { InvoiceData, InvoiceItem, NubeFactResponse, Client, CreditInstallment, ToastType } from '@/types';
+import { InvoiceData, InvoiceItem, NubeFactResponse, Client, CatalogItem, CreditInstallment, ToastType } from '@/types';
 import { toast } from '@/components/ui/toast';
 import { calculateItemTotals, calculateInvoiceTotals, getTodayForInput, formatToSunatDate } from '@/utils/calculations';
 import { sendInvoice, checkConnection } from '@/services/nubefactService';
@@ -10,6 +10,7 @@ import { getTipoCambioSunat } from '@/services/exchangeRateService';
 import { ResponseViewer } from '@/components/ResponseViewer';
 import { DetractionModal } from '@/components/DetractionModal';
 import { ClientSearch } from '@/components/ClientSearch';
+import { ItemSearch } from '@/components/ItemSearch';
 import { InputModal } from '@/components/InputModal';
 import { InvoiceListModal } from '@/components/InvoiceListModal';
 import { ComprobantesListView } from '@/components/ComprobantesListView';
@@ -578,6 +579,24 @@ function App() {
         return { ...updatedItem, ...calculateItemTotals(qty, valor) };
       }
       return updatedItem;
+    }));
+  };
+
+  // Al elegir un ítem del catálogo de inventario de ayala, autocompleta código,
+  // descripción, precio y (si coincide con el catálogo SUNAT) la unidad de medida.
+  const handleSelectCatalogItem = (id: string, catalogItem: CatalogItem) => {
+    setItems(prevItems => prevItems.map(item => {
+      if (item.id !== id) return item;
+      const um = catalogItem.u_m?.toUpperCase().trim();
+      const unidad_de_medida = um && unitsList.includes(um) ? um : item.unidad_de_medida;
+      const updatedItem = {
+        ...item,
+        codigo: catalogItem.codigo,
+        descripcion: catalogItem.descripcion,
+        valor_unitario: catalogItem.precio_unitario,
+        unidad_de_medida,
+      };
+      return { ...updatedItem, ...calculateItemTotals(updatedItem.cantidad, catalogItem.precio_unitario) };
     }));
   };
 
@@ -1608,7 +1627,15 @@ function App() {
                                 <TableRow key={item.id}>
                                     <TableCell className="text-xs text-muted-foreground">{index + 1}</TableCell>
                                     <TableCell><Input value={item.codigo} onChange={(e) => handleItemChange(item.id, 'codigo', e.target.value)} className="h-7 border-0 shadow-none" placeholder="Cod" /></TableCell>
-                                    <TableCell><Input value={item.descripcion} onChange={(e) => handleItemChange(item.id, 'descripcion', e.target.value)} className="h-7" placeholder="Descripción del servicio o bien" /></TableCell>
+                                    <TableCell>
+                                        <ItemSearch
+                                            value={item.descripcion}
+                                            onChange={(e) => handleItemChange(item.id, 'descripcion', e.target.value)}
+                                            onSelect={(catalogItem) => handleSelectCatalogItem(item.id, catalogItem)}
+                                            className="h-7"
+                                            placeholder="Descripción del servicio o bien"
+                                        />
+                                    </TableCell>
                                     <TableCell>
                                         <Select
                                             items={unitItems}

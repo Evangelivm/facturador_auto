@@ -22,6 +22,14 @@ export interface Client {
   tipo_documento: number; // 6 for RUC
 }
 
+// Ítem del catálogo de inventario de ayala (tabla `listado_items_2025`)
+export interface CatalogItem {
+  codigo: string;
+  descripcion: string;
+  precio_unitario: number;
+  u_m: string | null;
+}
+
 // Nueva interfaz para las cuotas
 export interface CreditInstallment {
   cuota: number;
