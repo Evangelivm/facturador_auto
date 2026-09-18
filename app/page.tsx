@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { InvoiceData, InvoiceItem, NubeFactResponse, Client, CatalogItem, CreditInstallment, ToastType } from '@/types';
 import { toast } from '@/components/ui/toast';
 import { calculateItemTotals, calculateInvoiceTotals, getTodayForInput, formatToSunatDate } from '@/utils/calculations';
@@ -373,6 +373,17 @@ function App() {
       }
     }
   }, [cuotas, numCuotas]);
+
+  // Autoajusta la altura del panel de Observación cuando el texto generado se
+  // estira (detracción + fondo de garantía + O/C + cuentas bancarias, etc.),
+  // en vez de quedarse recortado con scroll interno.
+  const observacionesRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = observacionesRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [invoice.observaciones]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -1674,7 +1685,7 @@ function App() {
                             Generar Info Automática
                         </Button>
                      </div>
-                     <Textarea name="observaciones" value={invoice.observaciones} onChange={handleInputChange} className="h-20 text-xs" />
+                     <Textarea ref={observacionesRef} name="observaciones" value={invoice.observaciones} onChange={handleInputChange} className="min-h-20 max-h-80 overflow-y-auto text-xs" />
                 </div>
                 <div className="md:col-span-4">
                   <div className="bg-gradient-to-br from-primary-600 via-primary-600 to-violet-700 p-3 rounded-2xl shadow-lg shadow-primary-600/30 text-white">

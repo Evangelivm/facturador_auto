@@ -18,10 +18,12 @@ function createPool() {
 
 const globalForInventario = globalThis as unknown as { inventarioPool?: Pool };
 
-export const inventarioPool = globalForInventario.inventarioPool ?? createPool();
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForInventario.inventarioPool = inventarioPool;
+// Se crea perezosamente (al primer query, no al importar el módulo): así el
+// build de Next.js no se rompe si DATABASE_URL_INVENTARIO aún no está
+// configurada en el entorno (p.ej. falta agregarla en Vercel).
+export function getInventarioPool(): Pool {
+  if (!globalForInventario.inventarioPool) {
+    globalForInventario.inventarioPool = createPool();
+  }
+  return globalForInventario.inventarioPool;
 }
-
-export default inventarioPool;

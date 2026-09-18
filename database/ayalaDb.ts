@@ -17,10 +17,12 @@ function createPool() {
 
 const globalForAyala = globalThis as unknown as { ayalaPool?: Pool };
 
-export const ayalaPool = globalForAyala.ayalaPool ?? createPool();
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForAyala.ayalaPool = ayalaPool;
+// Se crea perezosamente (al primer query, no al importar el módulo): así el
+// build de Next.js no se rompe si DATABASE_URL_AYALA aún no está configurada
+// en el entorno (p.ej. falta agregarla en Vercel).
+export function getAyalaPool(): Pool {
+  if (!globalForAyala.ayalaPool) {
+    globalForAyala.ayalaPool = createPool();
+  }
+  return globalForAyala.ayalaPool;
 }
-
-export default ayalaPool;
