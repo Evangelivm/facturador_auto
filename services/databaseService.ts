@@ -34,6 +34,19 @@ export const getInvoices = async (status?: string) => {
   }
 };
 
+// Trae el detalle completo (items incluidos) de todos los comprobantes, para armar el
+// "Consolidado" en Excel. Solo se usa al exportar, no en el listado normal.
+export const getInvoicesForExport = async () => {
+  try {
+    const response = await fetch('/api/invoices?export=1');
+    if (!response.ok) throw new Error('Failed to fetch invoices for export');
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching invoices for export:', error);
+    throw error;
+  }
+};
+
 export const getInvoiceById = async (id: number) => {
     try {
         const response = await fetch(`/api/invoices?id=${id}`);

@@ -1,9 +1,12 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { getInvoices, getInvoiceById } from '@/services/databaseService';
+import { getInvoices, getInvoiceById, getInvoicesForExport } from '@/services/databaseService';
 import { ComprobanteOptionsModal, ComprobanteRow } from './ComprobanteOptionsModal';
 import { ToastType } from '@/types';
+import {
+  SUNAT_TIPO_CODE, formatFecha, isAceptada, isPagado, ListFilters, matchesFilters, exportConsolidadoExcel,
+} from '@/lib/consolidadoReport';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field, FieldLabel } from '@/components/ui/field';
@@ -15,7 +18,7 @@ import {
   Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableFooter } from '@/components/ui/table';
-import { SearchIcon, DownloadIcon, FilterIcon, InboxIcon, XIcon, PlusIcon, CircleCheckIcon, CircleXIcon } from 'lucide-react';
+import { SearchIcon, DownloadIcon, FilterIcon, InboxIcon, XIcon, PlusIcon, CircleCheckIcon, CircleXIcon, Loader2Icon } from 'lucide-react';
 
 interface ComprobantesListViewProps {
   isOpen: boolean;
@@ -23,6 +26,7 @@ interface ComprobantesListViewProps {
   onSelectInvoice: (invoice: any) => void;
   onGenerateNew: (invoice: ComprobanteRow, targetTipo: number) => void;
   onOpenBajas: () => void;
+  onOpenConsolidado: () => void;
   onNotify: (message: string, type?: ToastType) => void;
 }
 
@@ -33,35 +37,7 @@ const TIPO_LABELS: Record<number, string> = {
   4: 'NOTA DE DÉBITO ELECTRÓNICA'
 };
 
-// Código de tipo de comprobante según el catálogo 01 de SUNAT (el que NubeFact usa internamente es 1-4)
-const SUNAT_TIPO_CODE: Record<number, string> = { 1: '01', 2: '03', 3: '07', 4: '08' };
-
 const PAGE_SIZE = 15;
-
-const formatFecha = (value: any) => {
-  if (!value) return '';
-  const d = new Date(value);
-  if (isNaN(d.getTime())) return String(value);
-  return d.toLocaleDateString('es-PE');
-};
-
-// Clave "YYYY-MM-DD" en fecha calendario local, para comparar contra los inputs type="date"
-// sin que la diferencia de huso horario (la API devuelve fechas en UTC) descarte filas del
-// día seleccionado.
-const toDateKey = (value: any): string => {
-  if (!value) return '';
-  const d = new Date(value);
-  if (isNaN(d.getTime())) return '';
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-};
-
-const isAceptada = (row: ComprobanteRow) =>
-  row.estado !== 'BORRADOR' && !row.nubefact_error && !!row.nubefact_sunat_description;
-
-const isPagado = (row: ComprobanteRow) => !!row.pagado && Number(row.pagado) !== 0;
 
 const EstadoBadge: React.FC<{ estado?: string }> = ({ estado }) => (
   <Badge variant={estado === 'EMITIDO' ? 'default' : estado === 'BORRADOR' ? 'secondary' : 'destructive'}>
@@ -70,7 +46,7 @@ const EstadoBadge: React.FC<{ estado?: string }> = ({ estado }) => (
 );
 
 export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
-  isOpen, onClose, onSelectInvoice, onGenerateNew, onOpenBajas, onNotify
+  isOpen, onClose, onSelectInvoice, onGenerateNew, onOpenBajas, onOpenConsolidado, onNotify
 }) => {
   const [rows, setRows] = useState<ComprobanteRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -85,6 +61,7 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
   const [page, setPage] = useState(1);
 
   const [optionsInvoice, setOptionsInvoice] = useState<ComprobanteRow | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const loadInvoices = async () => {
     setLoading(true);
@@ -103,37 +80,10 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
     if (isOpen) loadInvoices();
   }, [isOpen]);
 
+  const activeFilters: ListFilters = { fechaInicio, fechaFin, tipoFiltro, entidadFiltro, anuladoFiltro, buscarDocumento };
+
   const filteredRows = useMemo(() => {
-    return rows.filter(row => {
-      if (fechaInicio || fechaFin) {
-        const rowDateKey = toDateKey((row as any).fecha_de_emision);
-        if (fechaInicio && rowDateKey < fechaInicio) return false;
-        if (fechaFin && rowDateKey > fechaFin) return false;
-      }
-
-      if (tipoFiltro === 'BORRADOR') {
-        if (row.estado !== 'BORRADOR') return false;
-      } else if (tipoFiltro) {
-        if (String(row.tipo_de_comprobante) !== tipoFiltro) return false;
-      }
-
-      if (entidadFiltro) {
-        const q = entidadFiltro.toLowerCase();
-        const matches = (row.cliente_denominacion || '').toLowerCase().includes(q) ||
-          (row.cliente_numero_de_documento || '').toLowerCase().includes(q);
-        if (!matches) return false;
-      }
-
-      if (anuladoFiltro === 'ANULADOS' && row.estado !== 'ANULADO') return false;
-      if (anuladoFiltro === 'NO_ANULADOS' && row.estado === 'ANULADO') return false;
-
-      if (buscarDocumento) {
-        const doc = `${row.serie}-${row.numero}`.toLowerCase();
-        if (!doc.includes(buscarDocumento.toLowerCase())) return false;
-      }
-
-      return true;
-    });
+    return rows.filter(row => matchesFilters(row, activeFilters));
   }, [rows, fechaInicio, fechaFin, tipoFiltro, entidadFiltro, anuladoFiltro, buscarDocumento]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
@@ -165,30 +115,19 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
     }
   };
 
-  const handleDescargaExcel = () => {
-    const header = ['FECHA', 'TIPO', 'SERIE', 'NUM', 'RUC/DNI', 'DENOMINACION', 'MONEDA', 'TOTAL', 'ESTADO', 'ANULADO', 'PROCESO', 'FECHA PAGO'];
-    const csvRows = filteredRows.map(row => [
-      formatFecha((row as any).fecha_de_emision),
-      SUNAT_TIPO_CODE[row.tipo_de_comprobante] || row.tipo_de_comprobante,
-      row.serie,
-      row.numero,
-      row.cliente_numero_de_documento || '',
-      (row.cliente_denominacion || '').replace(/"/g, '""'),
-      row.moneda === 2 ? 'USD' : 'PEN',
-      Number(row.total).toFixed(2),
-      row.estado || 'EMITIDO',
-      row.estado === 'ANULADO' ? 'SI' : 'NO',
-      isPagado(row) ? 'PAGADO' : 'POR COBRAR',
-      (row as any).fecha_pago ? formatFecha((row as any).fecha_pago) : ''
-    ]);
-    const csv = [header, ...csvRows].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `comprobantes_${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  // Genera el mismo "Consolidado de Facturas, Boletas y Notas" en .xlsx que descarga NubeFact
+  // (mismas columnas), pero respetando los filtros que estén activos en pantalla. Se pide el
+  // detalle completo (con items) aparte del listado liviano porque recién ahí se necesita.
+  const handleDescargaExcel = async () => {
+    setExporting(true);
+    try {
+      const fullRows = await getInvoicesForExport();
+      await exportConsolidadoExcel(fullRows, activeFilters, 'comprobantes');
+    } catch (e: any) {
+      onNotify('Error al generar el Excel: ' + (e.message || ''), 'error');
+    } finally {
+      setExporting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -198,6 +137,9 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
       <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-background/90 px-3 py-3 shadow-sm backdrop-blur-md sm:px-4 md:px-6">
         <h1 className="text-lg font-bold tracking-tight text-foreground sm:text-xl md:text-2xl">Comprobantes</h1>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={onOpenConsolidado}>
+            Consolidado
+          </Button>
           <Button variant="outline" onClick={onOpenBajas}>
             Comunicaciones de baja
           </Button>
@@ -297,9 +239,9 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
               </div>
             </Field>
             <Button onClick={loadInvoices}>Aplicar filtros</Button>
-            <Button variant="secondary" onClick={handleDescargaExcel} title="Descargar como Excel/CSV">
-              <DownloadIcon data-icon="inline-start" />
-              Descarga Excel
+            <Button variant="secondary" onClick={handleDescargaExcel} disabled={exporting} title="Descargar consolidado en Excel">
+              {exporting ? <Loader2Icon data-icon="inline-start" className="animate-spin" /> : <DownloadIcon data-icon="inline-start" />}
+              {exporting ? 'Generando...' : 'Descarga Excel'}
             </Button>
           </div>
         </div>
@@ -370,7 +312,9 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
                       {row.estado !== 'BORRADOR' && (
                         <Badge variant={aceptada ? 'default' : 'destructive'}>SUNAT {aceptada ? '✔' : '✘'}</Badge>
                       )}
-                      {!row.estado || row.estado !== 'BORRADOR' ? (
+                      {row.estado === 'ANULADO' ? (
+                        <Badge variant="destructive">ANULADO</Badge>
+                      ) : row.estado !== 'BORRADOR' ? (
                         <Badge variant={pagado ? 'default' : 'outline'}>{pagado ? 'PAGADO' : 'POR COBRAR'}</Badge>
                       ) : null}
                     </div>
@@ -450,7 +394,9 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
                           )}
                         </TableCell>
                         <TableCell className="text-center">
-                          {row.estado === 'BORRADOR' ? '-' : (
+                          {row.estado === 'BORRADOR' ? '-' : row.estado === 'ANULADO' ? (
+                            <Badge variant="destructive">ANULADO</Badge>
+                          ) : (
                             <Badge variant={pagado ? 'default' : 'outline'}>{pagado ? 'PAGADO' : 'POR COBRAR'}</Badge>
                           )}
                         </TableCell>

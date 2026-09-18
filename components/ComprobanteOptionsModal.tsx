@@ -4,11 +4,13 @@ import React, { useEffect, useState } from 'react';
 import { anularComprobante, consultarComprobante, consultarAnulacion } from '@/services/nubefactService';
 import { anularInvoiceInDb, deleteInvoiceFromDb, updateInvoiceStatus, registrarPagoEnDb, actualizarEstadoBajaEnDb } from '@/services/databaseService';
 import { ToastType } from '@/types';
+import { formatFecha } from '@/lib/consolidadoReport';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { PrinterIcon, CircleCheckIcon, CircleXIcon, RefreshCwIcon } from 'lucide-react';
 
 export interface ComprobanteRow {
@@ -288,7 +290,9 @@ export const ComprobanteOptionsModal: React.FC<ComprobanteOptionsModalProps> = (
   const esAnulado = invoice.estado === 'ANULADO';
   const estaPagado = !!invoice.pagado && Number(invoice.pagado) !== 0;
   const enviada = !esBorrador;
-  const aceptada = enviada && !esAnulado && !invoice.nubefact_error && !!invoice.nubefact_sunat_description;
+  // "Aceptada por SUNAT" es un hecho histórico independiente de si luego se anuló: un
+  // comprobante anulado sigue habiendo sido aceptado por SUNAT al momento de emitirse.
+  const aceptada = enviada && !invoice.nubefact_error && !!invoice.nubefact_sunat_description;
 
   return (
     <Dialog open={isOpen} onOpenChange={(next) => { if (!next) onClose(); }}>
@@ -322,27 +326,34 @@ export const ComprobanteOptionsModal: React.FC<ComprobanteOptionsModalProps> = (
         </div>
 
         {!esBorrador && (
-          <div className="rounded-lg border p-3 text-left">
-            <h3 className="mb-2 text-xs font-bold tracking-wider text-muted-foreground uppercase">Proceso de Pago</h3>
+          <div className={`rounded-lg border p-3 text-left ${esAnulado ? 'opacity-60' : ''}`}>
+            <h3 className="mb-2 flex items-center gap-2 text-xs font-bold tracking-wider text-muted-foreground uppercase">
+              Proceso de Pago
+              {esAnulado && <Badge variant="destructive" className="normal-case tracking-normal">Inactivo: comprobante anulado</Badge>}
+            </h3>
             {estaPagado ? (
               <div className="text-sm">
-                <p className="font-semibold text-emerald-700">✔ PAGADO{invoice.fecha_pago ? ` el ${new Date(invoice.fecha_pago).toLocaleDateString('es-PE')}` : ''}</p>
+                <p className="font-semibold text-emerald-700">✔ PAGADO{invoice.fecha_pago ? ` el ${formatFecha(invoice.fecha_pago)}` : ''}</p>
                 {invoice.comprobante_pago_data && (
                   <a href={invoice.comprobante_pago_data} target="_blank" rel="noreferrer" className="text-primary hover:underline">
                     Ver constancia de pago
                   </a>
                 )}
-                <button onClick={() => setShowPagoForm(s => !s)} className="mt-1 block text-xs text-muted-foreground hover:underline">
-                  Actualizar registro de pago
-                </button>
+                {!esAnulado && (
+                  <button onClick={() => setShowPagoForm(s => !s)} className="mt-1 block text-xs text-muted-foreground hover:underline">
+                    Actualizar registro de pago
+                  </button>
+                )}
               </div>
+            ) : esAnulado ? (
+              <p className="text-sm text-muted-foreground">No aplica: este comprobante fue anulado.</p>
             ) : !showPagoForm ? (
               <Button className="w-full" onClick={() => setShowPagoForm(true)}>
                 Registrar pago
               </Button>
             ) : null}
 
-            {showPagoForm && (
+            {showPagoForm && !esAnulado && (
               <div className="mt-2 flex flex-col gap-3">
                 <Field>
                   <FieldLabel htmlFor="pago-fecha">Fecha de pago</FieldLabel>

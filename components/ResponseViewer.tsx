@@ -55,29 +55,22 @@ export const ResponseViewer: React.FC<ResponseViewerProps> = ({ response, loadin
               </Alert>
             )}
 
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               {response.enlace_del_pdf && (
-                <Button variant="default" className="flex-1 basis-32" render={<a href={response.enlace_del_pdf} target="_blank" rel="noreferrer" />}>
+                <Button variant="default" render={<a href={response.enlace_del_pdf} target="_blank" rel="noreferrer" />}>
                   Ver PDF
                 </Button>
               )}
               {response.enlace_del_xml && (
-                <Button variant="secondary" className="flex-1 basis-32" render={<a href={response.enlace_del_xml} target="_blank" rel="noreferrer" />}>
+                <Button variant="secondary" render={<a href={response.enlace_del_xml} target="_blank" rel="noreferrer" />}>
                   Descargar XML
                 </Button>
               )}
               {response.enlace_del_cdr && (
-                <Button variant="outline" className="flex-1 basis-32" render={<a href={response.enlace_del_cdr} target="_blank" rel="noreferrer" />}>
+                <Button variant="outline" render={<a href={response.enlace_del_cdr} target="_blank" rel="noreferrer" />}>
                   Descargar CDR
                 </Button>
               )}
-            </div>
-
-            <div className="border-t pt-3">
-              <p className="mb-2 text-sm font-medium text-foreground">Detalles Técnicos</p>
-              <div className="max-h-40 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs">
-                <pre>{JSON.stringify(response, null, 2)}</pre>
-              </div>
             </div>
           </div>
         )}
