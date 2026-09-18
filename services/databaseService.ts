@@ -1,4 +1,4 @@
-import { InvoiceData } from '@/types';
+import { Client, InvoiceData } from '@/types';
 
 export const saveInvoiceToDb = async (invoice: InvoiceData) => {
   try {
@@ -177,6 +177,13 @@ export const deleteInvoiceFromDb = async (id: number) => {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.error || 'Error al eliminar el comprobante');
   }
+  return res.json();
+};
+
+export const searchEmpresas = async (query: string): Promise<Client[]> => {
+  if (!query.trim()) return [];
+  const res = await fetch(`/api/empresas?q=${encodeURIComponent(query)}`);
+  if (!res.ok) throw new Error('Failed to search empresas');
   return res.json();
 };
 
