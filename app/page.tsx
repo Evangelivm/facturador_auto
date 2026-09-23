@@ -958,12 +958,14 @@ function App() {
                         setCuotas(parsedData.cuotas || []);
                         setFirstInstallmentDate(""); // Reset for loaded draft
 
-                        // Ensure projects/services are added to lists if not present
+                        // Ensure projects/services are added to lists if not present (y persistidos en la BD)
                         if (parsedData.invoice.proyecto && !projectsList.includes(parsedData.invoice.proyecto)) {
                             setProjectsList(prev => [...prev, parsedData.invoice.proyecto]);
+                            addProject(parsedData.invoice.proyecto).catch(console.error);
                         }
                         if (parsedData.invoice.linea_servicio && !serviceLinesList.includes(parsedData.invoice.linea_servicio)) {
                             setServiceLinesList(prev => [...prev, parsedData.invoice.linea_servicio]);
+                            addServiceLine(parsedData.invoice.linea_servicio).catch(console.error);
                         }
 
                         showToast("Borrador cargado exitosamente", 'success');
@@ -1058,12 +1060,14 @@ function App() {
           setFirstInstallmentDate("");
       }
 
-      // Update lists if needed
+      // Update lists if needed (y persistir en la BD para que aparezcan en futuras facturas)
       if (loadedInvoice.proyecto && !projectsList.includes(loadedInvoice.proyecto)) {
           setProjectsList(prev => [...prev, loadedInvoice.proyecto]);
+          addProject(loadedInvoice.proyecto).catch(console.error);
       }
       if (loadedInvoice.linea_servicio && !serviceLinesList.includes(loadedInvoice.linea_servicio)) {
           setServiceLinesList(prev => [...prev, loadedInvoice.linea_servicio]);
+          addServiceLine(loadedInvoice.linea_servicio).catch(console.error);
       }
   };
 
