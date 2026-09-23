@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Client } from '@/types';
+import { searchEmpresas } from '@/services/databaseService';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Field, FieldLabel } from '@/components/ui/field';
@@ -21,6 +22,8 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({ onSelect, currentVal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
   const [filteredClients, setFilteredClients] = useState<Client[]>([]);
+  const [empresaResults, setEmpresaResults] = useState<Client[]>([]);
+  const [isSearchingEmpresas, setIsSearchingEmpresas] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -54,6 +57,43 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({ onSelect, currentVal
     );
     setFilteredClients(filtered);
   }, [currentValue, clients]);
+
+  // Busca en la base de datos de ayala (tabla empresas_2025) por RUC o razón social
+  useEffect(() => {
+    const term = currentValue.trim();
+    if (term.length < 2) {
+      setEmpresaResults([]);
+      return;
+    }
+
+    let cancelled = false;
+    setIsSearchingEmpresas(true);
+    const timeoutId = setTimeout(async () => {
+      try {
+        const results = await searchEmpresas(term);
+        if (!cancelled) setEmpresaResults(results);
+      } catch (error) {
+        console.error('Error buscando empresas:', error);
+        if (!cancelled) setEmpresaResults([]);
+      } finally {
+        if (!cancelled) setIsSearchingEmpresas(false);
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [currentValue]);
+
+  // Combina clientes guardados localmente con empresas encontradas en ayala,
+  // evitando duplicados por número de documento (se prioriza el guardado local).
+  const combinedResults = [
+    ...filteredClients,
+    ...empresaResults.filter(
+      (empresa) => !filteredClients.some((c) => c.numero_documento === empresa.numero_documento)
+    ),
+  ];
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -119,7 +159,7 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({ onSelect, currentVal
 
       {/* Dropdown - Enhanced Table Layout */}
       {isOpen && (
-        <div className="absolute -left-1 z-50 mt-1 max-h-80 w-[600px] overflow-auto rounded-lg bg-popover text-popover-foreground shadow-xl ring-1 ring-foreground/10">
+        <div className="absolute -left-1 z-50 mt-1 max-h-80 w-[780px] overflow-y-auto overflow-x-hidden rounded-lg bg-popover text-popover-foreground shadow-xl ring-1 ring-foreground/10">
           <button
              type="button"
              className="flex w-full items-center border-b px-4 py-3 text-left font-bold text-primary transition-colors hover:bg-primary/5"
@@ -133,7 +173,11 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({ onSelect, currentVal
              <PlusIcon className="mr-2 size-4" /> Crear Nuevo Cliente
           </button>
 
-          {filteredClients.length === 0 ? (
+          {isSearchingEmpresas && (
+            <div className="px-4 py-1.5 text-xs text-muted-foreground">Buscando empresas...</div>
+          )}
+
+          {combinedResults.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
               <p>No se encontraron clientes.</p>
               <p className="mt-1 text-xs">Haga clic arriba para crear uno nuevo.</p>
@@ -148,11 +192,11 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({ onSelect, currentVal
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredClients.map((client, index) => (
+                {combinedResults.map((client, index) => (
                   <TableRow key={index} className="cursor-pointer" onClick={() => handleSelect(client)}>
-                    <TableCell className="font-medium">{client.numero_documento}</TableCell>
-                    <TableCell>{client.denominacion}</TableCell>
-                    <TableCell className="max-w-[200px] truncate" title={client.direccion}>{client.direccion}</TableCell>
+                    <TableCell className="font-medium whitespace-nowrap">{client.numero_documento}</TableCell>
+                    <TableCell className="whitespace-normal break-words">{client.denominacion}</TableCell>
+                    <TableCell className="max-w-[260px] truncate" title={client.direccion}>{client.direccion}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
