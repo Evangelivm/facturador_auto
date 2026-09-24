@@ -1170,6 +1170,9 @@ function App() {
   // En Nota de Crédito/Débito el cliente debe ser el mismo del comprobante que se modifica,
   // así que sus datos quedan de solo lectura hasta que se busque y seleccione ese comprobante.
   const isNotaCreditoDebito = invoice.tipo_de_comprobante === 3 || invoice.tipo_de_comprobante === 4;
+  // En Nota de Crédito los ítems deben reflejar tal cual los del comprobante que se modifica
+  // (se cargan con "Buscar comprobante..."), así que quedan de solo lectura.
+  const isNotaCredito = invoice.tipo_de_comprobante === 3;
 
   // Calculos de validación visual
   const fondoGarantiaVal = parseFloat(invoice.fondo_garantia_monto || "0");
