@@ -31,11 +31,7 @@ import { PlusIcon, XIcon, RefreshCwIcon, FileTextIcon, Loader2Icon, ReceiptIcon,
 // Serie con la que se identifica un documento que todavía es un borrador (nunca se envía a
 // NubeFact/SUNAT así). Al emitirlo recién se le asigna la serie y el correlativo real.
 const BORRADOR_SERIE = 'BORR';
-// FFF1-1 a FFF1-22 ya fueron emitidos y aceptados por la SUNAT (ver comprobantes existentes),
-// así que no se puede reiniciar esa numeración. Se usa una serie nueva para que el correlativo
-// arranque limpio desde 1 sin chocar con lo ya emitido. Verifica que esta serie también esté
-// registrada/autorizada en el panel de NubeFact antes de emitir con ella.
-const REAL_SERIE = 'FFF2';
+const REAL_SERIE = 'FFF1';
 
 // Safe ID generator
 const generateId = () => {
