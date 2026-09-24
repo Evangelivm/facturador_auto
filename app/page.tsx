@@ -1257,8 +1257,8 @@ function App() {
                                 currentValue={invoice.cliente_numero_de_documento}
                                 onChange={handleInputChange}
                                 onSelect={handleClientSelect}
-                                readOnly={isNotaCreditoDebito}
-                                placeholder={isNotaCreditoDebito ? "Busca el comprobante a modificar..." : undefined}
+                                disabled={isNotaCreditoDebito}
+                                placeholder={isNotaCreditoDebito ? "Se completa al buscar el comprobante a modificar" : undefined}
                             />
                             {!invoice.cliente_numero_de_documento && (
                                 <p className="text-[11px] text-rose-500 mt-1">
