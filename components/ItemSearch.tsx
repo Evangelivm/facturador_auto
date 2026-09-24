@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { CatalogItem } from '@/types';
+import { cn } from 'cn';
 import { Input } from '@/components/ui/input';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { searchCatalogItems } from '@/services/databaseService';
@@ -13,9 +14,10 @@ interface ItemSearchProps {
   onSelect: (item: CatalogItem) => void;
   className?: string;
   placeholder?: string;
+  readOnly?: boolean;
 }
 
-export const ItemSearch: React.FC<ItemSearchProps> = ({ value, onChange, onSelect, className, placeholder }) => {
+export const ItemSearch: React.FC<ItemSearchProps> = ({ value, onChange, onSelect, className, placeholder, readOnly = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [results, setResults] = useState<CatalogItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -26,6 +28,7 @@ export const ItemSearch: React.FC<ItemSearchProps> = ({ value, onChange, onSelec
 
   // Busca en el catálogo de inventario de ayala (tabla listado_items_2025)
   useEffect(() => {
+    if (readOnly) return;
     const term = value.trim();
     if (term.length < 2) {
       setResults([]);
@@ -100,13 +103,15 @@ export const ItemSearch: React.FC<ItemSearchProps> = ({ value, onChange, onSelec
         ref={inputRef}
         value={value}
         onChange={onChange}
-        onFocus={() => setIsOpen(true)}
-        className={className}
+        onFocus={() => { if (!readOnly) setIsOpen(true); }}
+        className={cn(readOnly && "cursor-default bg-muted/50 text-muted-foreground", className)}
         placeholder={placeholder}
         autoComplete="off"
+        readOnly={readOnly}
+        title={readOnly ? value : undefined}
       />
 
-      {showDropdown && position && createPortal(
+      {!readOnly && showDropdown && position && createPortal(
         <div
           ref={dropdownRef}
           className="fixed z-50 max-h-72 overflow-y-auto overflow-x-hidden rounded-lg bg-popover text-popover-foreground shadow-xl ring-1 ring-foreground/10"

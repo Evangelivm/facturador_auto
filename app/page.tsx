@@ -611,6 +611,7 @@ function App() {
         descripcion: catalogItem.descripcion,
         valor_unitario: catalogItem.precio_unitario,
         unidad_de_medida,
+        fromCatalog: true,
       };
       return { ...updatedItem, ...calculateItemTotals(updatedItem.cantidad, catalogItem.precio_unitario) };
     }));
@@ -1165,7 +1166,7 @@ function App() {
       }
   };
 
-  const sectionTitleClass = "text-sm font-bold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2";
+  const sectionTitleClass = "text-sm font-bold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-2";
   const isCredit = numCuotas > 0;
 
   // Calculos de validación visual
@@ -1183,13 +1184,13 @@ function App() {
   const unitItems = Object.fromEntries(unitsList.map(u => [u, u]));
 
   return (
-    <div className="min-h-screen pb-6 font-sans">
-      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200/80 shadow-sm px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2">
+    <div className="min-h-screen pb-3 font-sans">
+      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200/80 shadow-sm px-4 sm:px-6 py-1.5 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-3">
-              <span className={`hidden sm:flex h-9 w-9 items-center justify-center rounded-xl text-white font-black text-sm shadow-lg shadow-primary-600/30 bg-gradient-to-br ${invoice.tipo_de_comprobante === 3 ? 'from-purple-500 to-fuchsia-600' : invoice.tipo_de_comprobante === 4 ? 'from-amber-500 to-orange-600' : 'from-primary-500 to-violet-600'}`}>
+              <span className={`hidden sm:flex h-8 w-8 items-center justify-center rounded-xl text-white font-black text-sm shadow-lg shadow-primary-600/30 bg-gradient-to-br ${invoice.tipo_de_comprobante === 3 ? 'from-purple-500 to-fuchsia-600' : invoice.tipo_de_comprobante === 4 ? 'from-amber-500 to-orange-600' : 'from-primary-500 to-violet-600'}`}>
                   NF
               </span>
-              <h1 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">
+              <h1 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight">
                   {invoice.tipo_de_comprobante === 3 ? 'Nueva Nota de Crédito' : invoice.tipo_de_comprobante === 4 ? 'Nueva Nota de Débito' : 'Nueva Factura'}
               </h1>
           </div>
@@ -1232,22 +1233,22 @@ function App() {
           </div>
       </div>
 
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-3 space-y-3">
-        <div className="bg-white/90 backdrop-blur rounded-2xl shadow-md shadow-gray-900/5 border border-gray-100 p-4">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-2 space-y-2">
+        <div className="bg-white/90 backdrop-blur rounded-2xl shadow-md shadow-gray-900/5 border border-gray-100 p-3">
 
             {/* ENCABEZADO FACTURA */}
-            <div className="flex flex-col md:flex-row justify-between gap-4 mb-4 pb-4 border-b border-gray-100">
+            <div className="flex flex-col md:flex-row justify-between gap-3 mb-3 pb-3 border-b border-gray-100">
                 {/* LADO IZQUIERDO: CLIENTE */}
-                <div className="w-full md:w-1/2 space-y-2">
+                <div className="w-full md:w-1/2 space-y-1.5">
                     <h2 className={sectionTitleClass}>
-                        <span className="flex items-center justify-center h-7 w-7 rounded-lg bg-primary-100 text-primary-600">
+                        <span className="flex items-center justify-center h-6 w-6 rounded-lg bg-primary-100 text-primary-600">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
                         </span>
                         Datos del Cliente
                     </h2>
-                    <div className="grid grid-cols-12 gap-3">
+                    <div className="grid grid-cols-12 gap-2">
                         <div className="col-span-4">
                             <FieldLabel className="mb-1 text-xs font-semibold text-gray-600">Documento <span className="text-rose-500">*</span></FieldLabel>
                             <ClientSearch currentValue={invoice.cliente_numero_de_documento} onChange={handleInputChange} onSelect={handleClientSelect} />
@@ -1264,16 +1265,25 @@ function App() {
                         <div className="col-span-12">
                             <Field>
                                 <FieldLabel htmlFor="cliente_direccion">Dirección</FieldLabel>
-                                <Input id="cliente_direccion" name="cliente_direccion" value={invoice.cliente_direccion} onChange={handleInputChange} className="text-xs" placeholder="Dirección fiscal" />
+                                <Input
+                                    id="cliente_direccion"
+                                    name="cliente_direccion"
+                                    value={invoice.cliente_direccion}
+                                    onChange={handleInputChange}
+                                    className="text-xs cursor-default bg-muted/50 text-muted-foreground"
+                                    placeholder="Se completa al elegir el cliente"
+                                    readOnly
+                                    title={invoice.cliente_direccion || undefined}
+                                />
                             </Field>
                         </div>
                     </div>
                 </div>
 
                 {/* LADO DERECHO: DATOS COMPROBANTE */}
-                <div className={`w-full md:w-1/3 p-3 rounded-xl border shadow-sm ${invoice.tipo_de_comprobante === 3 ? 'bg-gradient-to-br from-purple-50 to-fuchsia-50 border-purple-200' : invoice.tipo_de_comprobante === 4 ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200' : 'bg-gradient-to-br from-primary-50 to-indigo-50 border-primary-100'}`}>
-                    <FieldLabel className="mb-1 text-xs font-semibold text-gray-600">Tipo de comprobante</FieldLabel>
-                    <div className="flex justify-between items-center mb-2">
+                <div className={`w-full md:w-1/3 p-2.5 rounded-xl border shadow-sm ${invoice.tipo_de_comprobante === 3 ? 'bg-gradient-to-br from-purple-50 to-fuchsia-50 border-purple-200' : invoice.tipo_de_comprobante === 4 ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200' : 'bg-gradient-to-br from-primary-50 to-indigo-50 border-primary-100'}`}>
+                    <FieldLabel className="mb-0.5 text-xs font-semibold text-gray-600">Tipo de comprobante</FieldLabel>
+                    <div className="flex justify-between items-center mb-1.5">
                         <Select
                             items={{ '1': 'FACTURA ELECTRÓNICA', '3': 'NOTA DE CRÉDITO ELECTRÓNICA', '4': 'NOTA DE DÉBITO ELECTRÓNICA' }}
                             value={String(invoice.tipo_de_comprobante)}
@@ -1291,7 +1301,7 @@ function App() {
                             </SelectContent>
                         </Select>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-2">
                         <Field>
                             <FieldLabel htmlFor="serie">Serie</FieldLabel>
                             <Input id="serie" name="serie" value={invoice.serie} onChange={handleInputChange} className="font-mono text-center" />
@@ -1349,14 +1359,14 @@ function App() {
                     </div>
 
                     {(invoice.tipo_de_comprobante === 3 || invoice.tipo_de_comprobante === 4) && (
-                        <div className={`mt-4 pt-4 border-t ${invoice.tipo_de_comprobante === 4 ? 'border-amber-200' : 'border-purple-200'}`}>
-                            <div className="flex justify-between items-center mb-2">
+                        <div className={`mt-3 pt-3 border-t ${invoice.tipo_de_comprobante === 4 ? 'border-amber-200' : 'border-purple-200'}`}>
+                            <div className="flex justify-between items-center mb-1.5">
                                 <h3 className={`text-xs font-bold uppercase tracking-wider ${invoice.tipo_de_comprobante === 4 ? 'text-amber-700' : 'text-purple-700'}`}>Documento que se Modifica</h3>
                                 <Button type="button" variant="link" size="sm" onClick={() => setIsOriginalDocModalOpen(true)}>
                                     Buscar comprobante...
                                 </Button>
                             </div>
-                            <div className="grid grid-cols-2 gap-2 mb-2">
+                            <div className="grid grid-cols-2 gap-1.5 mb-1.5">
                                 <Field>
                                     <FieldLabel htmlFor="doc_modifica_tipo">Tipo Doc.</FieldLabel>
                                     <Select
@@ -1379,7 +1389,7 @@ function App() {
                                     <Input id="doc_modifica_serie" name="documento_que_se_modifica_serie" value={invoice.documento_que_se_modifica_serie || ''} onChange={handleInputChange} className="font-mono" />
                                 </Field>
                             </div>
-                            <div className="grid grid-cols-2 gap-2 mb-2">
+                            <div className="grid grid-cols-2 gap-1.5 mb-1.5">
                                 <Field>
                                     <FieldLabel htmlFor="doc_modifica_numero">Número</FieldLabel>
                                     <Input id="doc_modifica_numero" name="documento_que_se_modifica_numero" value={invoice.documento_que_se_modifica_numero || ''} onChange={handleInputChange} className="font-mono" />
@@ -1430,9 +1440,9 @@ function App() {
             </div>
 
             {/* CONDICIÓN DE PAGO / PROYECTO / LÍNEA DE SERVICIO — lo que se usa en casi toda factura */}
-            <div className="grid grid-cols-12 gap-3 mb-3 bg-gray-50 p-2.5 rounded border border-gray-100">
+            <div className="grid grid-cols-12 gap-2 mb-2 bg-gray-50 p-2 rounded border border-gray-100">
                 <div className="col-span-12 md:col-span-3">
-                    <FieldLabel className="mb-1 text-xs font-semibold text-gray-600">Condición de Pago</FieldLabel>
+                    <FieldLabel className="mb-0.5 text-xs font-semibold text-gray-600">Condición de Pago</FieldLabel>
                     {invoice.tipo_de_comprobante === 3 || invoice.tipo_de_comprobante === 4 ? (
                         <div className="flex h-8 w-full items-center rounded-lg border bg-gray-100 px-2.5 text-sm text-gray-400 italic">No aplica</div>
                     ) : (
@@ -1500,11 +1510,11 @@ function App() {
 
             {/* OPCIONES ADICIONALES: Detracción / Fondo de Garantía / Orden de Compra — no aplican
                 a toda factura, así que quedan plegadas salvo que ya estén en uso. */}
-            <div className={`mb-4 border rounded-xl overflow-hidden transition-colors ${showOpcionesAdicionales ? 'border-amber-200' : 'border-gray-100'}`}>
+            <div className={`mb-3 border rounded-xl overflow-hidden transition-colors ${showOpcionesAdicionales ? 'border-amber-200' : 'border-gray-100'}`}>
                 <button
                     type="button"
                     onClick={() => setShowOpcionesAdicionales(s => !s)}
-                    className={`w-full flex justify-between items-center px-3 py-2.5 text-left transition-colors ${showOpcionesAdicionales ? 'bg-amber-50' : ''}`}
+                    className={`w-full flex justify-between items-center px-3 py-1.5 text-left transition-colors ${showOpcionesAdicionales ? 'bg-amber-50' : ''}`}
                 >
                     <span className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1520,9 +1530,9 @@ function App() {
                     </svg>
                 </button>
                 {showOpcionesAdicionales && (
-                    <div className="grid grid-cols-12 gap-3 px-3 pb-2 pt-2 border-t border-amber-100 bg-amber-50/50 animate-fade-in-down">
+                    <div className="grid grid-cols-12 gap-2 px-3 pb-1.5 pt-1.5 border-t border-amber-100 bg-amber-50/50 animate-fade-in-down">
                         <div className="col-span-6 md:col-span-2">
-                            <FieldLabel className="mb-1 text-xs font-semibold text-gray-600">Detracción</FieldLabel>
+                            <FieldLabel className="mb-0.5 text-xs font-semibold text-gray-600">Detracción</FieldLabel>
                             <Select
                                 items={{ NO: 'NO', SI: 'SI' }}
                                 value={invoice.detraccion ? 'SI' : 'NO'}
@@ -1560,8 +1570,8 @@ function App() {
 
             {/* SECCION EDITOR DE CUOTAS */}
             {isCredit && (
-                <div className="mb-4 border border-blue-200 rounded-lg overflow-hidden animate-fade-in-down shadow-sm">
-                    <div className="bg-blue-50 px-4 py-2 border-b border-blue-200 flex flex-wrap justify-between items-center gap-2">
+                <div className="mb-3 border border-blue-200 rounded-lg overflow-hidden animate-fade-in-down shadow-sm">
+                    <div className="bg-blue-50 px-3 py-1.5 border-b border-blue-200 flex flex-wrap justify-between items-center gap-2">
                         <div className="flex items-center">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -1584,7 +1594,7 @@ function App() {
                             Recalcular
                         </Button>
                     </div>
-                    <div className="p-3 bg-white overflow-x-auto">
+                    <div className="p-2.5 bg-white overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -1623,7 +1633,7 @@ function App() {
                                 ))}
                             </TableBody>
                         </Table>
-                        <div className="flex justify-between items-center text-sm border-t pt-3 mt-2 bg-gray-50 -mx-4 -mb-4 px-4 pb-3">
+                        <div className="flex justify-between items-center text-sm border-t pt-2 mt-1.5 bg-gray-50 -mx-2.5 -mb-2.5 px-2.5 pb-2.5">
                              <div className="flex items-center">
                                  <span className="text-gray-600 mr-2 font-medium">Validación:</span>
                                  <Badge variant={Math.abs(diffCuotas) > 0.1 ? 'destructive' : 'default'}>
@@ -1639,10 +1649,10 @@ function App() {
                 </div>
             )}
 
-            <div className="mt-4">
-                <div className="flex justify-between items-center mb-2">
+            <div className="mt-3">
+                <div className="flex justify-between items-center mb-1.5">
                     <h3 className={sectionTitleClass + " mb-0"}>
-                        <span className="flex items-center justify-center h-7 w-7 rounded-lg bg-emerald-100 text-emerald-600">
+                        <span className="flex items-center justify-center h-6 w-6 rounded-lg bg-emerald-100 text-emerald-600">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
                             </svg>
@@ -1659,7 +1669,7 @@ function App() {
                         <TableHeader>
                             <TableRow className="bg-primary-50 hover:bg-primary-50">
                                 <TableHead className="w-10">#</TableHead>
-                                <TableHead className="w-24">Cod</TableHead>
+                                <TableHead className="w-32">Cod</TableHead>
                                 <TableHead>Descripción</TableHead>
                                 <TableHead className="w-20 text-center">UM</TableHead>
                                 <TableHead className="w-20 text-right">Cant</TableHead>
@@ -1672,7 +1682,16 @@ function App() {
                             {items.map((item, index) => (
                                 <TableRow key={item.id}>
                                     <TableCell className="text-xs text-muted-foreground">{index + 1}</TableCell>
-                                    <TableCell><Input value={item.codigo} onChange={(e) => handleItemChange(item.id, 'codigo', e.target.value)} className="h-7 border-0 shadow-none" placeholder="Cod" /></TableCell>
+                                    <TableCell>
+                                        <Input
+                                            value={item.codigo}
+                                            onChange={(e) => handleItemChange(item.id, 'codigo', e.target.value)}
+                                            className={`h-7 border-0 shadow-none text-xs font-mono ${item.fromCatalog ? 'cursor-default bg-muted/50 text-muted-foreground' : ''}`}
+                                            placeholder="Cod"
+                                            readOnly={item.fromCatalog}
+                                            title={item.fromCatalog ? item.codigo : undefined}
+                                        />
+                                    </TableCell>
                                     <TableCell>
                                         <ItemSearch
                                             value={item.descripcion}
@@ -1680,6 +1699,7 @@ function App() {
                                             onSelect={(catalogItem) => handleSelectCatalogItem(item.id, catalogItem)}
                                             className="h-7"
                                             placeholder="Descripción del servicio o bien"
+                                            readOnly={item.fromCatalog}
                                         />
                                     </TableCell>
                                     <TableCell>
@@ -1711,7 +1731,7 @@ function App() {
                 </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-12 gap-4">
+            <div className="mt-3 grid grid-cols-1 md:grid-cols-12 gap-3">
                 <div className="md:col-span-8">
                      <div className="flex justify-between items-center mb-1">
                         <FieldLabel className="text-xs font-semibold text-gray-600">Observación</FieldLabel>
@@ -1720,12 +1740,12 @@ function App() {
                             Generar Info Automática
                         </Button>
                      </div>
-                     <Textarea ref={observacionesRef} name="observaciones" value={invoice.observaciones} onChange={handleInputChange} className="min-h-20 max-h-80 overflow-y-auto text-xs" />
+                     <Textarea ref={observacionesRef} name="observaciones" value={invoice.observaciones} onChange={handleInputChange} className="min-h-16 max-h-56 overflow-y-auto text-xs" />
                 </div>
                 <div className="md:col-span-4">
-                  <div className="bg-gradient-to-br from-primary-600 via-primary-600 to-violet-700 p-3 rounded-2xl shadow-lg shadow-primary-600/30 text-white">
+                  <div className="bg-gradient-to-br from-primary-600 via-primary-600 to-violet-700 p-2.5 rounded-2xl shadow-lg shadow-primary-600/30 text-white">
                     <div className="flex justify-between mb-1 text-primary-100"><span className="text-sm">Subtotal:</span><span className="font-medium text-white">{invoice.moneda === 2 ? '$' : 'S/'} {invoice.total_gravada.toFixed(2)}</span></div>
-                    <div className="flex justify-between mb-2 text-primary-100"><span className="text-sm">IGV (18%):</span><span className="font-medium text-white">{invoice.moneda === 2 ? '$' : 'S/'} {invoice.total_igv.toFixed(2)}</span></div>
+                    <div className="flex justify-between mb-1.5 text-primary-100"><span className="text-sm">IGV (18%):</span><span className="font-medium text-white">{invoice.moneda === 2 ? '$' : 'S/'} {invoice.total_igv.toFixed(2)}</span></div>
 
                     {invoice.detraccion && (
                         <div className="flex justify-between text-rose-100 bg-white/10 text-sm cursor-pointer hover:bg-white/20 p-1.5 -mx-1 rounded-lg mb-1 transition-colors" onClick={() => setIsDetractionModalOpen(true)}>
@@ -1734,13 +1754,13 @@ function App() {
                         </div>
                     )}
 
-                    <div className="flex justify-between items-baseline border-t border-white/20 pt-2 mb-3">
+                    <div className="flex justify-between items-baseline border-t border-white/20 pt-1.5 mb-2">
                         <span className="font-bold text-primary-100 text-sm uppercase tracking-wide">Total</span>
-                        <span className="font-black text-3xl text-white tracking-tight">{invoice.moneda === 2 ? '$' : 'S/'} {invoice.total.toFixed(2)}</span>
+                        <span className="font-black text-2xl text-white tracking-tight">{invoice.moneda === 2 ? '$' : 'S/'} {invoice.total.toFixed(2)}</span>
                     </div>
 
                     {!canSubmit && (
-                        <p className="text-[11px] text-amber-100 bg-white/10 rounded-lg px-2 py-1.5 mb-2 flex items-start gap-1.5">
+                        <p className="text-[11px] text-amber-100 bg-white/10 rounded-lg px-2 py-1 mb-1.5 flex items-start gap-1.5">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
@@ -1752,11 +1772,11 @@ function App() {
                         onClick={() => handleSubmit()}
                         disabled={loading || !canSubmit}
                         title={!canSubmit ? `Falta ${missingRequired.join(' y ')}` : undefined}
-                        className="w-full bg-white text-primary-800 font-black py-2.5 hover:bg-primary-50 disabled:opacity-50"
+                        className="w-full bg-white text-primary-800 font-black py-2 hover:bg-primary-50 disabled:opacity-50"
                     >
                         {loading ? 'EMITIENDO...' : invoice.tipo_de_comprobante === 3 ? 'EMITIR NOTA DE CRÉDITO' : invoice.tipo_de_comprobante === 4 ? 'EMITIR NOTA DE DÉBITO' : 'EMITIR AHORA'}
                     </Button>
-                    <Button variant="outline" onClick={handleSaveDraft} className="w-full mt-2 border-white/40 bg-transparent text-white hover:bg-white/10">
+                    <Button variant="outline" onClick={handleSaveDraft} className="w-full mt-1.5 border-white/40 bg-transparent text-white hover:bg-white/10">
                         Guardar borrador
                     </Button>
                   </div>

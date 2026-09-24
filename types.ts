@@ -12,6 +12,7 @@ export interface InvoiceItem {
   igv: number;
   total: number; // subtotal + igv
   anticipo_regularizacion: boolean;
+  fromCatalog?: boolean; // true si código/descripción vinieron del buscador de catálogo: quedan de solo lectura
 }
 
 export interface Client {
