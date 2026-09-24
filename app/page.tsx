@@ -251,8 +251,8 @@ function App() {
   const [response, setResponse] = useState<NubeFactResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Estado para el modal de aviso de O/C duplicada (misma orden de compra ya usada en otro
-  // comprobante EMITIDO). Es solo una advertencia: el usuario puede revisar o continuar igual.
+  // Estado para el modal de O/C duplicada (misma orden de compra ya usada en otro comprobante
+  // EMITIDO). Bloquea la emisión: hay que cambiar el número de O/C o revisar los existentes.
   const [ocDuplicadaInfo, setOcDuplicadaInfo] = useState<{ ordenCompra: string; matches: OcDuplicadaMatch[] } | null>(null);
 
   // Estados para el Modal de Entrada (Proyectos / Lineas)
@@ -750,7 +750,7 @@ function App() {
       setShowOpcionesAdicionales(true);
   };
 
-  const handleSubmit = async (skipOcDuplicadaCheck: boolean = false) => {
+  const handleSubmit = async () => {
     setLoading(true);
     setError(null);
     setResponse(null);
@@ -805,11 +805,10 @@ function App() {
         throw new Error(`Ya existe un comprobante ${serieToUse}-${numeroToUse} de este tipo (estado: ${duplicate.estado || 'EMITIDO'}). Cambia el número antes de emitir.`);
       }
 
-      // Aviso de O/C duplicada: si la orden de compra indicada ya está usada en otro
-      // comprobante EMITIDO, se avisa con un modal antes de emitir (a diferencia del duplicado
-      // de tipo+serie+número, esto no bloquea: puede haber más de una factura por la misma O/C).
+      // Bloqueo de O/C duplicada: si la orden de compra indicada ya está usada en otro
+      // comprobante EMITIDO, no se permite emitir de nuevo con esa misma O/C.
       const ordenCompraNumero = (invoice.orden_compra_numero || '').trim();
-      if (!skipOcDuplicadaCheck && invoice.orden_compra && ordenCompraNumero) {
+      if (invoice.orden_compra && ordenCompraNumero) {
         const ocMatches = existingInvoices.filter((inv: any) =>
           Number(inv.id) !== Number(invoice.id) &&
           inv.estado === 'EMITIDO' &&
@@ -1259,7 +1258,16 @@ function App() {
                         <div className="col-span-8">
                             <Field>
                                 <FieldLabel htmlFor="cliente_denominacion">Razón Social <span className="text-rose-500">*</span></FieldLabel>
-                                <Input id="cliente_denominacion" name="cliente_denominacion" value={invoice.cliente_denominacion} onChange={handleInputChange} className="bg-gray-50 font-medium" />
+                                <Input
+                                    id="cliente_denominacion"
+                                    name="cliente_denominacion"
+                                    value={invoice.cliente_denominacion}
+                                    onChange={handleInputChange}
+                                    className="cursor-default bg-muted/50 font-medium text-muted-foreground"
+                                    placeholder="Se completa al elegir el cliente"
+                                    readOnly
+                                    title={invoice.cliente_denominacion || undefined}
+                                />
                             </Field>
                         </div>
                         <div className="col-span-12">
@@ -1769,7 +1777,7 @@ function App() {
                     )}
 
                     <Button
-                        onClick={() => handleSubmit()}
+                        onClick={handleSubmit}
                         disabled={loading || !canSubmit}
                         title={!canSubmit ? `Falta ${missingRequired.join(' y ')}` : undefined}
                         className="w-full bg-white text-primary-800 font-black py-2 hover:bg-primary-50 disabled:opacity-50"
@@ -1791,11 +1799,7 @@ function App() {
         isOpen={!!ocDuplicadaInfo}
         ordenCompra={ocDuplicadaInfo?.ordenCompra || ''}
         matches={ocDuplicadaInfo?.matches || []}
-        onCancel={() => setOcDuplicadaInfo(null)}
-        onConfirm={() => {
-          setOcDuplicadaInfo(null);
-          handleSubmit(true);
-        }}
+        onClose={() => setOcDuplicadaInfo(null)}
       />
       <InputModal
           isOpen={inputModalOpen}

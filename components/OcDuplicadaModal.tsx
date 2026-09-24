@@ -18,27 +18,25 @@ interface OcDuplicadaModalProps {
   isOpen: boolean;
   ordenCompra: string;
   matches: OcDuplicadaMatch[];
-  onCancel: () => void;
-  onConfirm: () => void;
+  onClose: () => void;
 }
 
 export const OcDuplicadaModal: React.FC<OcDuplicadaModalProps> = ({
   isOpen,
   ordenCompra,
   matches,
-  onCancel,
-  onConfirm,
+  onClose,
 }) => {
   return (
-    <Dialog open={isOpen} onOpenChange={(next) => { if (!next) onCancel(); }}>
+    <Dialog open={isOpen} onOpenChange={(next) => { if (!next) onClose(); }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-amber-600">
+          <DialogTitle className="flex items-center gap-2 text-rose-600">
             <AlertTriangleIcon className="h-5 w-5 shrink-0" />
             REVISAR O/C YA EMITIDA
           </DialogTitle>
           <DialogDescription>
-            La orden de compra <strong>{ordenCompra}</strong> ya tiene {matches.length === 1 ? 'un comprobante emitido' : `${matches.length} comprobantes emitidos`} registrado{matches.length === 1 ? '' : 's'}. Verifica que no se esté facturando dos veces antes de continuar.
+            La orden de compra <strong>{ordenCompra}</strong> ya tiene {matches.length === 1 ? 'un comprobante emitido' : `${matches.length} comprobantes emitidos`} registrado{matches.length === 1 ? '' : 's'}. No se puede emitir de nuevo con esta misma O/C: cambia el número de orden de compra o revisa los comprobantes existentes antes de continuar.
           </DialogDescription>
         </DialogHeader>
 
@@ -60,11 +58,8 @@ export const OcDuplicadaModal: React.FC<OcDuplicadaModalProps> = ({
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Revisar O/C
-          </Button>
-          <Button type="button" variant="destructive" onClick={onConfirm}>
-            Emitir de todas formas
+          <Button type="button" onClick={onClose}>
+            Entendido, revisar O/C
           </Button>
         </DialogFooter>
       </DialogContent>
