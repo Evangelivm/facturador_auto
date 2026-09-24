@@ -9,6 +9,7 @@ import { saveInvoiceToDb, getInvoices, getInvoiceById, getProjects, addProject, 
 import { getTipoCambioSunat } from '@/services/exchangeRateService';
 import { ResponseViewer } from '@/components/ResponseViewer';
 import { DetractionModal } from '@/components/DetractionModal';
+import { OcDuplicadaModal, OcDuplicadaMatch } from '@/components/OcDuplicadaModal';
 import { ClientSearch } from '@/components/ClientSearch';
 import { ItemSearch } from '@/components/ItemSearch';
 import { InputModal } from '@/components/InputModal';
@@ -249,6 +250,10 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<NubeFactResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Estado para el modal de aviso de O/C duplicada (misma orden de compra ya usada en otro
+  // comprobante EMITIDO). Es solo una advertencia: el usuario puede revisar o continuar igual.
+  const [ocDuplicadaInfo, setOcDuplicadaInfo] = useState<{ ordenCompra: string; matches: OcDuplicadaMatch[] } | null>(null);
 
   // Estados para el Modal de Entrada (Proyectos / Lineas)
   const [inputModalOpen, setInputModalOpen] = useState(false);
@@ -744,7 +749,7 @@ function App() {
       setShowOpcionesAdicionales(true);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (skipOcDuplicadaCheck: boolean = false) => {
     setLoading(true);
     setError(null);
     setResponse(null);
@@ -797,6 +802,32 @@ function App() {
       );
       if (duplicate) {
         throw new Error(`Ya existe un comprobante ${serieToUse}-${numeroToUse} de este tipo (estado: ${duplicate.estado || 'EMITIDO'}). Cambia el número antes de emitir.`);
+      }
+
+      // Aviso de O/C duplicada: si la orden de compra indicada ya está usada en otro
+      // comprobante EMITIDO, se avisa con un modal antes de emitir (a diferencia del duplicado
+      // de tipo+serie+número, esto no bloquea: puede haber más de una factura por la misma O/C).
+      const ordenCompraNumero = (invoice.orden_compra_numero || '').trim();
+      if (!skipOcDuplicadaCheck && invoice.orden_compra && ordenCompraNumero) {
+        const ocMatches = existingInvoices.filter((inv: any) =>
+          Number(inv.id) !== Number(invoice.id) &&
+          inv.estado === 'EMITIDO' &&
+          (inv.orden_compra_numero || '').trim().toLowerCase() === ordenCompraNumero.toLowerCase()
+        );
+        if (ocMatches.length > 0) {
+          setOcDuplicadaInfo({
+            ordenCompra: ordenCompraNumero,
+            matches: ocMatches.map((inv: any) => ({
+              serie: inv.serie,
+              numero: inv.numero,
+              cliente_denominacion: inv.cliente_denominacion,
+              fecha_de_emision: inv.fecha_de_emision,
+              estado: inv.estado,
+            })),
+          });
+          setLoading(false);
+          return;
+        }
       }
 
       const isCredit = numCuotas > 0;
@@ -1718,7 +1749,7 @@ function App() {
                     )}
 
                     <Button
-                        onClick={handleSubmit}
+                        onClick={() => handleSubmit()}
                         disabled={loading || !canSubmit}
                         title={!canSubmit ? `Falta ${missingRequired.join(' y ')}` : undefined}
                         className="w-full bg-white text-primary-800 font-black py-2.5 hover:bg-primary-50 disabled:opacity-50"
@@ -1735,6 +1766,17 @@ function App() {
       </div>
 
       <DetractionModal isOpen={isDetractionModalOpen} onClose={() => setIsDetractionModalOpen(false)} onSelect={handleDetractionSelect} catalog={DETRACTION_CATALOG} />
+
+      <OcDuplicadaModal
+        isOpen={!!ocDuplicadaInfo}
+        ordenCompra={ocDuplicadaInfo?.ordenCompra || ''}
+        matches={ocDuplicadaInfo?.matches || []}
+        onCancel={() => setOcDuplicadaInfo(null)}
+        onConfirm={() => {
+          setOcDuplicadaInfo(null);
+          handleSubmit(true);
+        }}
+      />
       <InputModal
           isOpen={inputModalOpen}
           onClose={() => setInputModalOpen(false)}
