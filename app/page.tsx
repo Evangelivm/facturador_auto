@@ -1718,7 +1718,7 @@ function App() {
                                             onSelect={(catalogItem) => handleSelectCatalogItem(item.id, catalogItem)}
                                             className="h-7"
                                             placeholder="Descripción del servicio o bien"
-                                            readOnly={item.fromCatalog || isNotaCredito}
+                                            readOnly={item.fromCatalog || isNotaCreditoDebito}
                                         />
                                     </TableCell>
                                     <TableCell>
@@ -1726,7 +1726,7 @@ function App() {
                                             items={unitItems}
                                             value={item.unidad_de_medida}
                                             onValueChange={(v) => handleItemChange(item.id, 'unidad_de_medida', v ?? item.unidad_de_medida)}
-                                            disabled={isNotaCredito}
+                                            disabled={isNotaCreditoDebito}
                                         >
                                             <SelectTrigger className="h-7 w-full border-0 bg-transparent shadow-none"><SelectValue /></SelectTrigger>
                                             <SelectContent>
@@ -1741,8 +1741,8 @@ function App() {
                                             type="number"
                                             value={item.cantidad}
                                             onChange={(e) => handleItemChange(item.id, 'cantidad', e.target.value)}
-                                            className={`h-7 text-right ${isNotaCredito ? 'cursor-default bg-muted/50 text-muted-foreground' : ''}`}
-                                            readOnly={isNotaCredito}
+                                            className={`h-7 text-right ${isNotaCreditoDebito ? 'cursor-default bg-muted/50 text-muted-foreground' : ''}`}
+                                            readOnly={isNotaCreditoDebito}
                                         />
                                     </TableCell>
                                     <TableCell>
@@ -1750,8 +1750,8 @@ function App() {
                                             type="number"
                                             value={item.valor_unitario}
                                             onChange={(e) => handleItemChange(item.id, 'valor_unitario', e.target.value)}
-                                            className={`h-7 text-right ${isNotaCredito ? 'cursor-default bg-muted/50 text-muted-foreground' : ''}`}
-                                            readOnly={isNotaCredito}
+                                            className={`h-7 text-right ${isNotaCreditoDebito ? 'cursor-default bg-muted/50 text-muted-foreground' : ''}`}
+                                            readOnly={isNotaCreditoDebito}
                                         />
                                     </TableCell>
                                     <TableCell className="text-right text-xs font-semibold text-foreground">{item.subtotal.toFixed(2)}</TableCell>
