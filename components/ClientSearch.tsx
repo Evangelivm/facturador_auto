@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Client } from '@/types';
+import { cn } from 'cn';
 import { searchEmpresas } from '@/services/databaseService';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -15,9 +16,11 @@ interface ClientSearchProps {
   onSelect: (client: Client) => void;
   currentValue: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  readOnly?: boolean;
+  placeholder?: string;
 }
 
-export const ClientSearch: React.FC<ClientSearchProps> = ({ onSelect, currentValue, onChange }) => {
+export const ClientSearch: React.FC<ClientSearchProps> = ({ onSelect, currentValue, onChange, readOnly = false, placeholder }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
@@ -60,6 +63,7 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({ onSelect, currentVal
 
   // Busca en la base de datos de ayala (tabla empresas_2025) por RUC o razón social
   useEffect(() => {
+    if (readOnly) return;
     const term = currentValue.trim();
     if (term.length < 2) {
       setEmpresaResults([]);
@@ -149,16 +153,18 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({ onSelect, currentVal
           name="cliente_numero_de_documento"
           value={currentValue}
           onChange={onChange}
-          onFocus={() => setIsOpen(true)}
-          placeholder="Buscar cliente (RUC o Nombre)..."
-          className="pr-8"
+          onFocus={() => { if (!readOnly) setIsOpen(true); }}
+          placeholder={placeholder || "Buscar cliente (RUC o Nombre)..."}
+          className={cn("pr-8", readOnly && "cursor-default bg-muted/50 text-muted-foreground")}
           autoComplete="off"
+          readOnly={readOnly}
+          title={readOnly ? currentValue : undefined}
         />
         <SearchIcon className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
       </div>
 
       {/* Dropdown - Enhanced Table Layout */}
-      {isOpen && (
+      {!readOnly && isOpen && (
         <div className="absolute -left-1 z-50 mt-1 max-h-80 w-[780px] overflow-y-auto overflow-x-hidden rounded-lg bg-popover text-popover-foreground shadow-xl ring-1 ring-foreground/10">
           <button
              type="button"

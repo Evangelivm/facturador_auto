@@ -1167,6 +1167,9 @@ function App() {
 
   const sectionTitleClass = "text-sm font-bold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-2";
   const isCredit = numCuotas > 0;
+  // En Nota de Crédito/Débito el cliente debe ser el mismo del comprobante que se modifica,
+  // así que sus datos quedan de solo lectura hasta que se busque y seleccione ese comprobante.
+  const isNotaCreditoDebito = invoice.tipo_de_comprobante === 3 || invoice.tipo_de_comprobante === 4;
 
   // Calculos de validación visual
   const fondoGarantiaVal = parseFloat(invoice.fondo_garantia_monto || "0");
@@ -1250,9 +1253,17 @@ function App() {
                     <div className="grid grid-cols-12 gap-2">
                         <div className="col-span-4">
                             <FieldLabel className="mb-1 text-xs font-semibold text-gray-600">Documento <span className="text-rose-500">*</span></FieldLabel>
-                            <ClientSearch currentValue={invoice.cliente_numero_de_documento} onChange={handleInputChange} onSelect={handleClientSelect} />
+                            <ClientSearch
+                                currentValue={invoice.cliente_numero_de_documento}
+                                onChange={handleInputChange}
+                                onSelect={handleClientSelect}
+                                readOnly={isNotaCreditoDebito}
+                                placeholder={isNotaCreditoDebito ? "Busca el comprobante a modificar..." : undefined}
+                            />
                             {!invoice.cliente_numero_de_documento && (
-                                <p className="text-[11px] text-rose-500 mt-1">Requerido para emitir</p>
+                                <p className="text-[11px] text-rose-500 mt-1">
+                                    {isNotaCreditoDebito ? "Usa \"Buscar comprobante...\" para completar el cliente" : "Requerido para emitir"}
+                                </p>
                             )}
                         </div>
                         <div className="col-span-8">
@@ -1264,7 +1275,7 @@ function App() {
                                     value={invoice.cliente_denominacion}
                                     onChange={handleInputChange}
                                     className="cursor-default bg-muted/50 font-medium text-muted-foreground"
-                                    placeholder="Se completa al elegir el cliente"
+                                    placeholder={isNotaCreditoDebito ? "Se completa al buscar el comprobante a modificar" : "Se completa al elegir el cliente"}
                                     readOnly
                                     title={invoice.cliente_denominacion || undefined}
                                 />
@@ -1279,7 +1290,7 @@ function App() {
                                     value={invoice.cliente_direccion}
                                     onChange={handleInputChange}
                                     className="text-xs cursor-default bg-muted/50 text-muted-foreground"
-                                    placeholder="Se completa al elegir el cliente"
+                                    placeholder={isNotaCreditoDebito ? "Se completa al buscar el comprobante a modificar" : "Se completa al elegir el cliente"}
                                     readOnly
                                     title={invoice.cliente_direccion || undefined}
                                 />
