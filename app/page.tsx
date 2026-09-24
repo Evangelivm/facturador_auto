@@ -1721,7 +1721,7 @@ function App() {
                                             onSelect={(catalogItem) => handleSelectCatalogItem(item.id, catalogItem)}
                                             className="h-7"
                                             placeholder="Descripción del servicio o bien"
-                                            readOnly={item.fromCatalog}
+                                            readOnly={item.fromCatalog || isNotaCredito}
                                         />
                                     </TableCell>
                                     <TableCell>
@@ -1729,6 +1729,7 @@ function App() {
                                             items={unitItems}
                                             value={item.unidad_de_medida}
                                             onValueChange={(v) => handleItemChange(item.id, 'unidad_de_medida', v ?? item.unidad_de_medida)}
+                                            disabled={isNotaCredito}
                                         >
                                             <SelectTrigger className="h-7 w-full border-0 bg-transparent shadow-none"><SelectValue /></SelectTrigger>
                                             <SelectContent>
@@ -1738,8 +1739,24 @@ function App() {
                                             </SelectContent>
                                         </Select>
                                     </TableCell>
-                                    <TableCell><Input type="number" value={item.cantidad} onChange={(e) => handleItemChange(item.id, 'cantidad', e.target.value)} className="h-7 text-right" /></TableCell>
-                                    <TableCell><Input type="number" value={item.valor_unitario} onChange={(e) => handleItemChange(item.id, 'valor_unitario', e.target.value)} className="h-7 text-right" /></TableCell>
+                                    <TableCell>
+                                        <Input
+                                            type="number"
+                                            value={item.cantidad}
+                                            onChange={(e) => handleItemChange(item.id, 'cantidad', e.target.value)}
+                                            className={`h-7 text-right ${isNotaCredito ? 'cursor-default bg-muted/50 text-muted-foreground' : ''}`}
+                                            readOnly={isNotaCredito}
+                                        />
+                                    </TableCell>
+                                    <TableCell>
+                                        <Input
+                                            type="number"
+                                            value={item.valor_unitario}
+                                            onChange={(e) => handleItemChange(item.id, 'valor_unitario', e.target.value)}
+                                            className={`h-7 text-right ${isNotaCredito ? 'cursor-default bg-muted/50 text-muted-foreground' : ''}`}
+                                            readOnly={isNotaCredito}
+                                        />
+                                    </TableCell>
                                     <TableCell className="text-right text-xs font-semibold text-foreground">{item.subtotal.toFixed(2)}</TableCell>
                                     <TableCell className="text-center">
                                         <Button variant="ghost" size="icon-sm" onClick={() => removeItem(item.id)} title="Quitar ítem" className="text-destructive hover:text-destructive">
