@@ -161,7 +161,6 @@ export const ConsolidadoView: React.FC<ConsolidadoViewProps> = ({
                 items={{
                   '': 'TODOS LOS TIPOS',
                   '1': 'FACTURA ELECTRÓNICA',
-                  '2': 'BOLETA DE VENTA ELECTRÓNICA',
                   '3': 'NOTA DE CRÉDITO ELECTRÓNICA',
                   '4': 'NOTA DE DÉBITO ELECTRÓNICA',
                 }}
@@ -173,7 +172,6 @@ export const ConsolidadoView: React.FC<ConsolidadoViewProps> = ({
                   <SelectGroup>
                     <SelectItem value="">TODOS LOS TIPOS</SelectItem>
                     <SelectItem value="1">FACTURA ELECTRÓNICA</SelectItem>
-                    <SelectItem value="2">BOLETA DE VENTA ELECTRÓNICA</SelectItem>
                     <SelectItem value="3">NOTA DE CRÉDITO ELECTRÓNICA</SelectItem>
                     <SelectItem value="4">NOTA DE DÉBITO ELECTRÓNICA</SelectItem>
                   </SelectGroup>

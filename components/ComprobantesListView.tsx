@@ -174,7 +174,6 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
                 items={{
                   '': 'TODOS LOS TIPOS',
                   '1': 'FACTURA ELECTRÓNICA',
-                  '2': 'BOLETA DE VENTA ELECTRÓNICA',
                   '3': 'NOTA DE CRÉDITO ELECTRÓNICA',
                   '4': 'NOTA DE DÉBITO ELECTRÓNICA',
                   BORRADOR: 'BORRADORES',
@@ -187,7 +186,6 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
                   <SelectGroup>
                     <SelectItem value="">TODOS LOS TIPOS</SelectItem>
                     <SelectItem value="1">FACTURA ELECTRÓNICA</SelectItem>
-                    <SelectItem value="2">BOLETA DE VENTA ELECTRÓNICA</SelectItem>
                     <SelectItem value="3">NOTA DE CRÉDITO ELECTRÓNICA</SelectItem>
                     <SelectItem value="4">NOTA DE DÉBITO ELECTRÓNICA</SelectItem>
                     <SelectItem value="BORRADOR">BORRADORES</SelectItem>

@@ -322,7 +322,6 @@ export const ComprobanteOptionsModal: React.FC<ComprobanteOptionsModalProps> = (
           <button onClick={handleWhatsApp} className="block w-full px-3 py-2 text-left text-primary hover:bg-muted">Enviar por WhatsApp</button>
           <button onClick={handleEmail} className="block w-full px-3 py-2 text-left text-primary hover:bg-muted">Enviar a un email personalizado</button>
           <button onClick={() => onGenerateNew(invoice, 1)} className="block w-full px-3 py-2 text-left text-primary hover:bg-muted">Generar otra FACTURA</button>
-          <button onClick={() => onGenerateNew(invoice, 2)} className="block w-full px-3 py-2 text-left text-primary hover:bg-muted">Generar otra BOLETA DE VENTA</button>
         </div>
 
         {!esBorrador && (
