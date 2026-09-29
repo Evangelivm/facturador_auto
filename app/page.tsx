@@ -113,7 +113,7 @@ const initialInvoice: InvoiceData = {
 type ConnectionStatus = 'checking' | 'connected' | 'error';
 
 const DEFAULT_PROJECTS = ["PROYECTO COLONIAL", "Proyecto Implementación ERP", "Proyecto Migración Cloud", "Mantenimiento 2025"];
-const DEFAULT_SERVICE_LINES = ["MOVIMIENTO DE TIERRAS", "Consultoría", "Desarrollo de Software", "Soporte Técnico"];
+const SERVICE_LINES_PERMITIDAS = ["DEMOLICION", "MOVIMIENTO DE TIERRAS", "SERVICIOS"];
 const DEFAULT_UNITS = ["NIU", "ZZ", "KGM", "MTR", "LTR", "MTQ", "HUR"];
 
 const DETRACTION_CATALOG = [
@@ -196,7 +196,7 @@ function App() {
   const [showOpcionesAdicionales, setShowOpcionesAdicionales] = useState(true);
 
   const [projectsList, setProjectsList] = useState<string[]>([]);
-  const [serviceLinesList, setServiceLinesList] = useState<string[]>([]);
+  const serviceLinesList = SERVICE_LINES_PERMITIDAS;
   const [unitsList, setUnitsList] = useState<string[]>(DEFAULT_UNITS);
 
   useEffect(() => {
@@ -209,13 +209,6 @@ function App() {
         setProjectsList(DEFAULT_PROJECTS);
     });
 
-    getServiceLines().then(data => {
-        if (data && data.length > 0) setServiceLinesList(data);
-        else setServiceLinesList(DEFAULT_SERVICE_LINES);
-    }).catch(e => {
-        console.error("Error loading service lines", e);
-        setServiceLinesList(DEFAULT_SERVICE_LINES);
-    });
   }, []);
 
   useEffect(() => {
@@ -639,12 +632,6 @@ function App() {
                   setProjectsList(prev => [...prev, trimmed]);
               }
               setInvoice(prev => ({ ...prev, proyecto: trimmed }));
-          } else if (inputModalTarget === 'linea_servicio') {
-              if (!serviceLinesList.includes(trimmed)) {
-                  await addServiceLine(trimmed);
-                  setServiceLinesList(prev => [...prev, trimmed]);
-              }
-              setInvoice(prev => ({ ...prev, linea_servicio: trimmed }));
           }
       } catch (e) {
           console.error(e);
@@ -757,6 +744,11 @@ function App() {
     try {
       if (!invoice.cliente_numero_de_documento) throw new Error("Falta el documento del cliente");
       if (items.length === 0) throw new Error("Debe agregar al menos un item");
+
+      if (invoice.tipo_de_comprobante === 1) {
+        if (!invoice.proyecto) throw new Error("Debe seleccionar el Proyecto para emitir la factura");
+        if (!invoice.linea_servicio) throw new Error("Debe seleccionar la Línea de Servicio para emitir la factura");
+      }
 
       if (invoice.tipo_de_comprobante === 3) {
         if (!invoice.documento_que_se_modifica_serie || !invoice.documento_que_se_modifica_numero) {
@@ -1024,10 +1016,6 @@ function App() {
                             setProjectsList(prev => [...prev, parsedData.invoice.proyecto]);
                             addProject(parsedData.invoice.proyecto).catch(console.error);
                         }
-                        if (parsedData.invoice.linea_servicio && !serviceLinesList.includes(parsedData.invoice.linea_servicio)) {
-                            setServiceLinesList(prev => [...prev, parsedData.invoice.linea_servicio]);
-                            addServiceLine(parsedData.invoice.linea_servicio).catch(console.error);
-                        }
 
                         showToast("Borrador cargado exitosamente", 'success');
                     } else {
@@ -1126,10 +1114,6 @@ function App() {
           setProjectsList(prev => [...prev, loadedInvoice.proyecto]);
           addProject(loadedInvoice.proyecto).catch(console.error);
       }
-      if (loadedInvoice.linea_servicio && !serviceLinesList.includes(loadedInvoice.linea_servicio)) {
-          setServiceLinesList(prev => [...prev, loadedInvoice.linea_servicio]);
-          addServiceLine(loadedInvoice.linea_servicio).catch(console.error);
-      }
   };
 
   // Usa un comprobante existente (desde el listado de "Comprobantes") como base para emitir uno nuevo
@@ -1170,6 +1154,7 @@ function App() {
   // En Nota de Crédito/Débito el cliente y los ítems deben reflejar tal cual el comprobante
   // que se modifica (se cargan con "Buscar comprobante..."), así que quedan de solo lectura.
   const isNotaCreditoDebito = invoice.tipo_de_comprobante === 3 || invoice.tipo_de_comprobante === 4;
+  const isFactura = invoice.tipo_de_comprobante === 1;
 
   // Calculos de validación visual
   const fondoGarantiaVal = parseFloat(invoice.fondo_garantia_monto || "0");
@@ -1484,7 +1469,7 @@ function App() {
                 </div>
 
                 <div className="col-span-12 md:col-span-4">
-                    <FieldLabel className="mb-1 text-xs font-semibold text-gray-600">Proyecto</FieldLabel>
+                    <FieldLabel className="mb-1 text-xs font-semibold text-gray-600">Proyecto{isFactura && <span className="text-red-500"> *</span>}</FieldLabel>
                     <div className="flex gap-1.5">
                         <Select
                             items={{ '': 'Seleccionar...', ...Object.fromEntries(projectsList.map(p => [p, p])) }}
@@ -1505,7 +1490,7 @@ function App() {
                     </div>
                 </div>
                 <div className="col-span-12 md:col-span-5">
-                    <FieldLabel className="mb-1 text-xs font-semibold text-gray-600">Línea Servicio</FieldLabel>
+                    <FieldLabel className="mb-1 text-xs font-semibold text-gray-600">Línea Servicio{isFactura && <span className="text-red-500"> *</span>}</FieldLabel>
                     <div className="flex gap-1.5">
                         <Select
                             items={{ '': 'Seleccionar...', ...Object.fromEntries(serviceLinesList.map(l => [l, l])) }}
@@ -1520,9 +1505,6 @@ function App() {
                                 </SelectGroup>
                             </SelectContent>
                         </Select>
-                        <Button variant="outline" size="icon" onClick={() => handleAddOption('linea_servicio', 'Nueva')} type="button">
-                            <PlusIcon />
-                        </Button>
                     </div>
                 </div>
             </div>
