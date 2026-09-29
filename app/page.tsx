@@ -18,6 +18,7 @@ import { ComprobantesListView } from '@/components/ComprobantesListView';
 import { ComunicacionesBajaView } from '@/components/ComunicacionesBajaView';
 import { ConsolidadoView } from '@/components/ConsolidadoView';
 import { ReporteLineaServicioView } from '@/components/ReporteLineaServicioView';
+import { MOSTRAR_BORRADORES } from '@/lib/consolidadoReport';
 import { ComprobanteRow } from '@/components/ComprobanteOptionsModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -847,11 +848,29 @@ function App() {
          condicionesPagoStr += ` - EFECTIVO`;
       }
 
+      // SUNAT/NubeFact rechazan un comprobante cuya fecha de emisión tenga más de 3 días de
+      // antigüedad ("La fecha del documento debe ser sólo hasta 3 día(s) permitido(s)").
+      // Una nota de crédito/débito siempre se emite con la fecha de hoy (puede referirse a una
+      // factura de hace meses o años: la antigüedad que cuenta es la de la nota, no la de la
+      // factura). Para los demás comprobantes solo se corrige si la fecha ya venció el plazo,
+      // por ejemplo un borrador guardado hace días.
+      const [ed, em, ey] = formatToSunatDate(invoice.fecha_de_emision).split('-').map(Number);
+      const emisionDate = new Date(ey, (em || 1) - 1, ed || 1);
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      const diasAntiguedad = Math.round((hoy.getTime() - emisionDate.getTime()) / 86400000);
+      const fechaEmisionToUse = (isNotaCreditoDebito || !ey || diasAntiguedad > 3)
+        ? getTodayForInput()
+        : invoice.fecha_de_emision;
+      if (fechaEmisionToUse !== invoice.fecha_de_emision) {
+        setInvoice(prev => ({ ...prev, fecha_de_emision: fechaEmisionToUse }));
+      }
+
       const invoicePayload = {
         ...invoice,
         serie: serieToUse,
         numero: numeroToUse,
-        fecha_de_emision: formatToSunatDate(invoice.fecha_de_emision),
+        fecha_de_emision: formatToSunatDate(fechaEmisionToUse),
         // Si es crédito, la fecha de vencimiento es la última cuota
         fecha_de_vencimiento: isCredit && cuotas.length > 0
             ? formatToSunatDate(cuotas[cuotas.length - 1].fecha_de_pago)
@@ -1800,9 +1819,11 @@ function App() {
                     >
                         {loading ? 'EMITIENDO...' : invoice.tipo_de_comprobante === 3 ? 'EMITIR NOTA DE CRÉDITO' : invoice.tipo_de_comprobante === 4 ? 'EMITIR NOTA DE DÉBITO' : 'EMITIR AHORA'}
                     </Button>
-                    <Button variant="outline" onClick={handleSaveDraft} className="w-full mt-1.5 border-white/40 bg-transparent text-white hover:bg-white/10">
-                        Guardar borrador
-                    </Button>
+                    {MOSTRAR_BORRADORES && (
+                        <Button variant="outline" onClick={handleSaveDraft} className="w-full mt-1.5 border-white/40 bg-transparent text-white hover:bg-white/10">
+                            Guardar borrador
+                        </Button>
+                    )}
                   </div>
                 </div>
             </div>

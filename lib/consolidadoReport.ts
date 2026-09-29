@@ -33,7 +33,11 @@ export const toDateKey = (value: any): string => {
   return `${y}-${m}-${day}`;
 };
 
-export const isAceptada = (row: ComprobanteRow) =>
+// Interruptor temporal: oculta toda la funcionalidad de borradores (guardar borrador, filtro
+// "Borradores", filas en borrador en los listados y reportes). Poner en true para reactivarla.
+export const MOSTRAR_BORRADORES = false;
+
+export const isAceptada =(row: ComprobanteRow) =>
   row.estado !== 'BORRADOR' && !row.nubefact_error && !!row.nubefact_sunat_description;
 
 export const isPagado = (row: ComprobanteRow) => !!row.pagado && Number(row.pagado) !== 0;
@@ -51,6 +55,8 @@ export interface ListFilters {
 // exportación a Excel de ambas: así el Excel exportado siempre coincide exactamente con lo que
 // se ve filtrado en pantalla, sin duplicar la lógica en cada componente.
 export const matchesFilters = (row: ComprobanteRow, f: ListFilters): boolean => {
+  if (!MOSTRAR_BORRADORES && row.estado === 'BORRADOR') return false;
+
   if (f.fechaInicio || f.fechaFin) {
     const rowDateKey = toDateKey((row as any).fecha_de_emision);
     if (f.fechaInicio && rowDateKey < f.fechaInicio) return false;
