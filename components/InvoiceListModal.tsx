@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { getInvoices, getInvoiceById } from '@/services/databaseService';
 import { InvoiceData } from '@/types';
-import { formatFecha } from '@/lib/consolidadoReport';
+import { formatFecha, MOSTRAR_BORRADORES } from '@/lib/consolidadoReport';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -34,7 +34,7 @@ export const InvoiceListModal: React.FC<InvoiceListProps> = ({ onSelectInvoice, 
     try {
       const status = filter === 'TODOS' ? undefined : filter;
       const data = await getInvoices(status);
-      setInvoices(data);
+      setInvoices(MOSTRAR_BORRADORES ? data : data.filter((inv: any) => inv.estado !== 'BORRADOR'));
     } catch (error) {
       console.error(error);
     } finally {
@@ -64,7 +64,7 @@ export const InvoiceListModal: React.FC<InvoiceListProps> = ({ onSelectInvoice, 
 
         <ToggleGroup variant="outline" value={[filter]} onValueChange={(v) => v[0] && setFilter(v[0])}>
           <ToggleGroupItem value="TODOS">Todos</ToggleGroupItem>
-          <ToggleGroupItem value="BORRADOR">Borradores</ToggleGroupItem>
+          {MOSTRAR_BORRADORES && <ToggleGroupItem value="BORRADOR">Borradores</ToggleGroupItem>}
           <ToggleGroupItem value="EMITIDO">Emitidos</ToggleGroupItem>
         </ToggleGroup>
 

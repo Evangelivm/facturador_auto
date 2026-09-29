@@ -5,7 +5,7 @@ import { getInvoices, getInvoiceById, getInvoicesForExport } from '@/services/da
 import { ComprobanteOptionsModal, ComprobanteRow } from './ComprobanteOptionsModal';
 import { ToastType } from '@/types';
 import {
-  SUNAT_TIPO_CODE, formatFecha, isAceptada, isPagado, ListFilters, matchesFilters, exportConsolidadoExcel,
+  MOSTRAR_BORRADORES, SUNAT_TIPO_CODE, formatFecha, isAceptada, isPagado, ListFilters, matchesFilters, exportConsolidadoExcel,
 } from '@/lib/consolidadoReport';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -188,7 +188,7 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
                     <SelectItem value="1">FACTURA ELECTRÓNICA</SelectItem>
                     <SelectItem value="3">NOTA DE CRÉDITO ELECTRÓNICA</SelectItem>
                     <SelectItem value="4">NOTA DE DÉBITO ELECTRÓNICA</SelectItem>
-                    <SelectItem value="BORRADOR">BORRADORES</SelectItem>
+                    {MOSTRAR_BORRADORES && <SelectItem value="BORRADOR">BORRADORES</SelectItem>}
                   </SelectGroup>
                 </SelectContent>
               </Select>
