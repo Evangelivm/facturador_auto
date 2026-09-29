@@ -39,6 +39,8 @@ export interface ComprobanteRow {
   pagado?: boolean | number;
   fecha_pago?: string;
   comprobante_pago_data?: string;
+  proyecto?: string | null;
+  linea_servicio?: string | null;
 }
 
 interface ComprobanteOptionsModalProps {

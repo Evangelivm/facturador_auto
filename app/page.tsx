@@ -17,6 +17,7 @@ import { InvoiceListModal } from '@/components/InvoiceListModal';
 import { ComprobantesListView } from '@/components/ComprobantesListView';
 import { ComunicacionesBajaView } from '@/components/ComunicacionesBajaView';
 import { ConsolidadoView } from '@/components/ConsolidadoView';
+import { ReporteLineaServicioView } from '@/components/ReporteLineaServicioView';
 import { ComprobanteRow } from '@/components/ComprobanteOptionsModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -255,6 +256,7 @@ function App() {
 
   // Estado para la vista completa de "Comprobantes" (listado, filtros, anulación)
   const [comprobantesViewOpen, setComprobantesViewOpen] = useState(false);
+  const [reporteLineaViewOpen, setReporteLineaViewOpen] = useState(false);
   // Estado para la vista de "Comunicaciones de Baja" (anulaciones ante SUNAT y su ticket)
   const [bajaViewOpen, setBajaViewOpen] = useState(false);
   // Estado para el "Consolidado de Facturas, Boletas y Notas" (reporte global + export a Excel)
@@ -1191,6 +1193,10 @@ function App() {
                   <LayoutListIcon data-icon="inline-start" />
                   Consolidado
               </Button>
+              <Button variant="ghost" size="sm" className="flex-1 sm:flex-none text-gray-600 hover:text-gray-900" onClick={() => setReporteLineaViewOpen(true)}>
+                  <FileTextIcon data-icon="inline-start" />
+                  Reporte línea de servicio
+              </Button>
               <Button variant="ghost" size="sm" className="flex-1 sm:flex-none text-gray-600 hover:text-gray-900" onClick={() => setBajaViewOpen(true)}>
                   <BanIcon data-icon="inline-start" />
                   Comunicaciones de baja
@@ -1843,6 +1849,11 @@ function App() {
           onClose={() => setConsolidadoViewOpen(false)}
           onOpenComprobantes={() => { setConsolidadoViewOpen(false); setComprobantesViewOpen(true); }}
           onOpenBajas={() => { setConsolidadoViewOpen(false); setBajaViewOpen(true); }}
+          onNotify={showToast}
+      />
+      <ReporteLineaServicioView
+          isOpen={reporteLineaViewOpen}
+          onClose={() => setReporteLineaViewOpen(false)}
           onNotify={showToast}
       />
       <ResponseViewer response={response} loading={loading} error={error} onClose={() => { setResponse(null); setError(null); }} />

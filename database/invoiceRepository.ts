@@ -220,7 +220,7 @@ export const getInvoices = async (status?: string) => {
       nubefact_baja_description: true, nubefact_baja_enlace_pdf: true,
       nubefact_baja_enlace_xml: true, nubefact_baja_enlace_cdr: true,
       pagado: true, fecha_pago: true, created_at: true,
-      orden_compra_numero: true,
+      orden_compra_numero: true, proyecto: true, linea_servicio: true,
     }
   });
   return rows.map(serializeComprobante);

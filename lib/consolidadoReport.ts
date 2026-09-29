@@ -177,7 +177,13 @@ const BORRADOR_FILL = 'FFF3F4F6';
 // verde, borradores en gris) y dispara la descarga en el navegador. Se usa desde "Comprobantes"
 // y "Consolidado" para no duplicar la generación del archivo. La librería "xlsx" (SheetJS free)
 // no escribe estilos al guardar, por eso se usa "exceljs" en su lugar.
-export const exportConsolidadoExcel = async (fullRows: any[], filters: ListFilters, filenamePrefix: string) => {
+export const exportConsolidadoExcel = async (
+  fullRows: any[],
+  filters: ListFilters,
+  filenamePrefix: string,
+  // Columnas extra al final del consolidado estándar (ej. "PROYECTO", "LÍNEA DE SERVICIO").
+  extraColumns: { header: string; value: (row: any) => string | number }[] = [],
+) => {
   const imported: any = await import('exceljs');
   const ExcelJS = imported.Workbook ? imported : imported.default;
   const filtered = fullRows.filter((row: any) => matchesFilters(row, filters));
@@ -190,7 +196,9 @@ export const exportConsolidadoExcel = async (fullRows: any[], filters: ListFilte
     views: [{ state: 'frozen', ySplit: 1 }],
   });
 
-  worksheet.columns = EXPORT_HEADERS.map((header: string) => ({
+  const allHeaders = [...EXPORT_HEADERS, ...extraColumns.map(c => c.header)];
+
+  worksheet.columns = allHeaders.map((header: string) => ({
     header,
     width: Math.max(12, Math.min(30, header.length + 4)),
   }));
@@ -204,7 +212,7 @@ export const exportConsolidadoExcel = async (fullRows: any[], filters: ListFilte
   });
 
   filtered.forEach((row: any) => {
-    const excelRow = worksheet.addRow(buildExportRow(row));
+    const excelRow = worksheet.addRow([...buildExportRow(row), ...extraColumns.map(c => c.value(row))]);
 
     CURRENCY_COLS.forEach((col) => { excelRow.getCell(col).numFmt = '#,##0.00'; });
     WRAP_COLS.forEach((col) => { excelRow.getCell(col).alignment = { wrapText: true, vertical: 'top' }; });
@@ -229,7 +237,7 @@ export const exportConsolidadoExcel = async (fullRows: any[], filters: ListFilte
     }
   });
 
-  worksheet.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: EXPORT_HEADERS.length } };
+  worksheet.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: allHeaders.length } };
 
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
