@@ -28,6 +28,8 @@ interface ReporteLineaServicioViewProps {
 
 const PAGE_SIZE = 15;
 
+const LINEAS_SERVICIO = ['DEMOLICION', 'MOVIMIENTO DE TIERRAS', 'SERVICIOS'];
+
 const EstadoBadge: React.FC<{ estado?: string }> = ({ estado }) => (
   <Badge variant={estado === 'EMITIDO' ? 'default' : estado === 'BORRADOR' ? 'secondary' : 'destructive'}>
     {estado || 'EMITIDO'}
@@ -49,6 +51,8 @@ export const ReporteLineaServicioView: React.FC<ReporteLineaServicioViewProps> =
   const [entidadFiltro, setEntidadFiltro] = useState('');
   const [anuladoFiltro, setAnuladoFiltro] = useState(''); // '', 'ANULADOS', 'NO_ANULADOS'
   const [buscarDocumento, setBuscarDocumento] = useState('');
+  const [proyectoFiltro, setProyectoFiltro] = useState('');
+  const [lineaFiltro, setLineaFiltro] = useState('');
   const [page, setPage] = useState(1);
 
   const [exporting, setExporting] = useState(false);
@@ -72,14 +76,23 @@ export const ReporteLineaServicioView: React.FC<ReporteLineaServicioViewProps> =
 
   const activeFilters: ListFilters = { fechaInicio, fechaFin, tipoFiltro, entidadFiltro, anuladoFiltro, buscarDocumento };
 
+  const matchesProyectoLinea = (row: any) =>
+    (!proyectoFiltro || row.proyecto === proyectoFiltro) && (!lineaFiltro || row.linea_servicio === lineaFiltro);
+
+  // Proyectos que existen en los comprobantes cargados (el catálogo de proyectos es libre).
+  const proyectosDisponibles = useMemo(
+    () => Array.from(new Set(rows.map(r => r.proyecto).filter((p): p is string => !!p))).sort(),
+    [rows],
+  );
+
   const filteredRows = useMemo(() => {
-    return rows.filter(row => matchesFilters(row, activeFilters));
-  }, [rows, fechaInicio, fechaFin, tipoFiltro, entidadFiltro, anuladoFiltro, buscarDocumento]);
+    return rows.filter(row => matchesFilters(row, activeFilters) && matchesProyectoLinea(row));
+  }, [rows, fechaInicio, fechaFin, tipoFiltro, entidadFiltro, anuladoFiltro, buscarDocumento, proyectoFiltro, lineaFiltro]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
   const pageRows = filteredRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  useEffect(() => { setPage(1); }, [fechaInicio, fechaFin, tipoFiltro, entidadFiltro, anuladoFiltro, buscarDocumento]);
+  useEffect(() => { setPage(1); }, [fechaInicio, fechaFin, tipoFiltro, entidadFiltro, anuladoFiltro, buscarDocumento, proyectoFiltro, lineaFiltro]);
 
   const totals = useMemo(() => {
     const acc = { 1: 0, 2: 0, 3: 0, 4: 0 };
@@ -97,7 +110,7 @@ export const ReporteLineaServicioView: React.FC<ReporteLineaServicioViewProps> =
     setExporting(true);
     try {
       const fullRows = await getInvoicesForExport();
-      await exportConsolidadoExcel(fullRows, activeFilters, 'reporte_linea_servicio', [
+      await exportConsolidadoExcel(fullRows.filter(matchesProyectoLinea), activeFilters, 'reporte_linea_servicio', [
         { header: 'PROYECTO', value: (r: any) => r.proyecto || '' },
         { header: 'LÍNEA DE SERVICIO', value: (r: any) => r.linea_servicio || '' },
       ]);
@@ -172,6 +185,41 @@ export const ReporteLineaServicioView: React.FC<ReporteLineaServicioViewProps> =
                     <SelectItem value="">Todos</SelectItem>
                     <SelectItem value="ANULADOS">Solo anulados</SelectItem>
                     <SelectItem value="NO_ANULADOS">No anulados</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
+
+          <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
+            <Field>
+              <FieldLabel htmlFor="rls-proyecto">Proyecto</FieldLabel>
+              <Select
+                items={{ '': 'TODOS LOS PROYECTOS', ...Object.fromEntries(proyectosDisponibles.map(p => [p, p])) }}
+                value={proyectoFiltro}
+                onValueChange={(v) => setProyectoFiltro(v ?? '')}
+              >
+                <SelectTrigger id="rls-proyecto" className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="">TODOS LOS PROYECTOS</SelectItem>
+                    {proyectosDisponibles.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="rls-linea">Línea de servicio</FieldLabel>
+              <Select
+                items={{ '': 'TODAS LAS LÍNEAS', ...Object.fromEntries(LINEAS_SERVICIO.map(l => [l, l])) }}
+                value={lineaFiltro}
+                onValueChange={(v) => setLineaFiltro(v ?? '')}
+              >
+                <SelectTrigger id="rls-linea" className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="">TODAS LAS LÍNEAS</SelectItem>
+                    {LINEAS_SERVICIO.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
                   </SelectGroup>
                 </SelectContent>
               </Select>
