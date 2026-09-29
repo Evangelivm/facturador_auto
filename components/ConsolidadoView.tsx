@@ -111,7 +111,7 @@ export const ConsolidadoView: React.FC<ConsolidadoViewProps> = ({
     <div className="fixed inset-0 z-40 overflow-y-auto bg-background">
       <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-background/90 px-3 py-3 shadow-sm backdrop-blur-md sm:px-4 md:px-6">
         <h1 className="text-lg font-bold tracking-tight text-foreground sm:text-xl md:text-2xl">
-          Consolidado de Facturas, Boletas y Notas
+          Consolidado de Facturas y Notas
         </h1>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={onOpenComprobantes}>
