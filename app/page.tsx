@@ -1143,6 +1143,34 @@ function App() {
   const handleGenerateNewFromInvoice = async (row: ComprobanteRow, targetTipo: number) => {
       try {
           const fullInvoice = await getInvoiceById(row.id);
+
+          // Nota de Crédito sobre este comprobante: arranca de un formulario limpio (con fecha de
+          // hoy) y copia solo lo que la nota debe reflejar: cliente, moneda, ítems, proyecto/línea
+          // y el documento que modifica. El motivo lo elige el usuario.
+          if (targetTipo === 3) {
+              const existing = await getInvoices();
+              const maxNumero = existing.reduce((max: number, inv: any) =>
+                  (inv.tipo_de_comprobante === 3 && inv.serie === REAL_SERIE) ? Math.max(max, Number(inv.numero) || 0) : max, 0);
+              setIsExistingRecord(false);
+              setInvoice({
+                  ...initialInvoice,
+                  tipo_de_comprobante: 3,
+                  serie: REAL_SERIE,
+                  numero: maxNumero + 1,
+                  fecha_de_emision: getTodayForInput(),
+                  proyecto: fullInvoice.proyecto || "",
+                  linea_servicio: fullInvoice.linea_servicio || "",
+              });
+              handleSelectOriginalInvoice(fullInvoice);
+              setNumCuotas(0);
+              setCuotas([]);
+              setFirstInstallmentDate("");
+              setResponse(null);
+              setError(null);
+              setComprobantesViewOpen(false);
+              return;
+          }
+
           handleSelectInvoiceFromList(fullInvoice);
           // Es un documento NUEVO (aunque se use uno existente como base): su número debe autogenerarse.
           setIsExistingRecord(false);
