@@ -224,18 +224,23 @@ export const ComprobanteOptionsModal: React.FC<ComprobanteOptionsModalProps> = (
         throw new Error(typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg));
       }
 
+      // Si NubeFact aún no devuelve un enlace (ej. el CDR), se conserva el que ya se tenía
+      // en vez de pisarlo con vacío.
+      const enlaceCdr = result.enlace_del_cdr || invoice.nubefact_enlace_cdr;
       await updateInvoiceStatus(invoice.id, 'EMITIDO', {
-        nubefact_enlace_pdf: result.enlace_del_pdf,
-        nubefact_enlace_xml: result.enlace_del_xml,
-        nubefact_enlace_cdr: result.enlace_del_cdr,
-        nubefact_sunat_description: result.sunat_description
+        nubefact_enlace_pdf: result.enlace_del_pdf || invoice.nubefact_enlace_pdf,
+        nubefact_enlace_xml: result.enlace_del_xml || invoice.nubefact_enlace_xml,
+        nubefact_enlace_cdr: enlaceCdr,
+        nubefact_sunat_description: result.sunat_description || invoice.nubefact_sunat_description
       });
       onChanged();
       onNotify(
-        result.aceptada_por_sunat
-          ? `SUNAT aceptó ${invoice.serie}-${invoice.numero}.`
-          : (result.sunat_description || 'SUNAT todavía no confirma este comprobante, vuelve a intentar en unos minutos.'),
-        result.aceptada_por_sunat ? 'success' : 'info'
+        !enlaceCdr
+          ? 'NubeFact todavía no tiene el CDR de este comprobante, vuelve a intentar en unos minutos.'
+          : result.aceptada_por_sunat
+            ? `SUNAT aceptó ${invoice.serie}-${invoice.numero}.`
+            : (result.sunat_description || 'SUNAT todavía no confirma este comprobante, vuelve a intentar en unos minutos.'),
+        enlaceCdr && result.aceptada_por_sunat ? 'success' : 'info'
       );
     } catch (e: any) {
       onNotify('No se pudo consultar el estado en SUNAT: ' + (e.message || ''), 'error');
@@ -317,7 +322,14 @@ export const ComprobanteOptionsModal: React.FC<ComprobanteOptionsModalProps> = (
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <Button variant="destructive" onClick={() => openLink(invoice.nubefact_enlace_pdf)}>VER PDF</Button>
           <Button variant="secondary" onClick={() => openLink(invoice.nubefact_enlace_xml)}>DESCARGAR XML</Button>
-          <Button variant="outline" onClick={() => openLink(invoice.nubefact_enlace_cdr)}>DESCARGAR CDR</Button>
+          <Button
+            variant="outline"
+            disabled={!invoice.nubefact_enlace_cdr}
+            title={invoice.nubefact_enlace_cdr ? undefined : 'Aún no hay CDR: usa "Volver a consultar el CDR" más abajo'}
+            onClick={() => openLink(invoice.nubefact_enlace_cdr)}
+          >
+            DESCARGAR CDR
+          </Button>
         </div>
 
         <div className="divide-y rounded-lg border text-sm">
@@ -462,14 +474,14 @@ export const ComprobanteOptionsModal: React.FC<ComprobanteOptionsModalProps> = (
             </p>
             {invoice.nubefact_sunat_description && <p>Descripción: {invoice.nubefact_sunat_description}</p>}
             {invoice.nubefact_error && <p className="text-destructive">Otros: {invoice.nubefact_error}</p>}
-            {!esAnulado && !aceptada && (
+            {!esAnulado && (!aceptada || !invoice.nubefact_enlace_cdr) && (
               <>
                 <p className="mt-1 text-xs text-muted-foreground">
                   SUNAT valida de forma asíncrona: si recién emitiste el comprobante y todavía no aparece el CDR, es normal — consulta el estado en unos minutos.
                 </p>
                 <Button variant="outline" size="sm" className="mt-2" disabled={consultando} onClick={handleConsultarSunat}>
                   <RefreshCwIcon data-icon="inline-start" className={consultando ? 'animate-spin' : ''} />
-                  {consultando ? 'Consultando...' : 'Consultar estado en SUNAT'}
+                  {consultando ? 'Consultando...' : aceptada ? 'Volver a consultar el CDR' : 'Consultar estado en SUNAT'}
                 </Button>
               </>
             )}
