@@ -385,3 +385,43 @@ export const getInvoiceById = async (id: number) => {
     cuotas: cuotas.map(serializeCuota),
   };
 };
+
+// Resumen económico por comprobante: número, subtotal, IGV, total, detracción,
+// fondo de garantía y neto a pagar (neto = total - detracción - fondo de garantía).
+export const getInvoicesResumen = async (filtro?: { serie?: string; numero?: number; limit?: number }) => {
+  const rows = await prisma.comprobante.findMany({
+    where: {
+      ...(filtro?.serie ? { serie: filtro.serie } : {}),
+      ...(filtro?.numero ? { numero: filtro.numero } : {}),
+    },
+    orderBy: [{ fecha_de_emision: 'desc' }, { id: 'desc' }],
+    take: filtro?.limit ?? 300,
+    select: {
+      serie: true,
+      numero: true,
+      total_gravada: true,
+      total_inafecta: true,
+      total_exonerada: true,
+      total_igv: true,
+      total: true,
+      total_detraccion: true,
+      fondo_garantia_monto: true,
+    },
+  });
+  const n = (v: unknown) => Number(v ?? 0) || 0;
+  const r2 = (v: number) => Math.round(v * 100) / 100;
+  return rows.map(c => {
+    const total = n(c.total);
+    const detraccion = n(c.total_detraccion);
+    const fondo = n(c.fondo_garantia_monto);
+    return {
+      numero_factura: `${c.serie}-${c.numero}`,
+      sub_total: r2(n(c.total_gravada) + n(c.total_inafecta) + n(c.total_exonerada)),
+      igv: n(c.total_igv),
+      total,
+      detraccion,
+      fondo_garantia: fondo,
+      neto_a_pagar: r2(total - detraccion - fondo),
+    };
+  });
+};
