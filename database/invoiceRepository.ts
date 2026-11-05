@@ -386,7 +386,7 @@ export const getInvoiceById = async (id: number) => {
   };
 };
 
-// Resumen económico por comprobante: número, subtotal, IGV, total, detracción,
+// Resumen económico por comprobante: número, N° de O/C, subtotal, IGV, total, detracción,
 // fondo de garantía y neto a pagar (neto = total - detracción - fondo de garantía).
 export const getInvoicesResumen = async (filtro?: { serie?: string; numero?: number; limit?: number }) => {
   const rows = await prisma.comprobante.findMany({
@@ -399,6 +399,7 @@ export const getInvoicesResumen = async (filtro?: { serie?: string; numero?: num
     select: {
       serie: true,
       numero: true,
+      orden_compra_numero: true,
       total_gravada: true,
       total_inafecta: true,
       total_exonerada: true,
@@ -416,6 +417,7 @@ export const getInvoicesResumen = async (filtro?: { serie?: string; numero?: num
     const fondo = n(c.fondo_garantia_monto);
     return {
       numero_factura: `${c.serie}-${c.numero}`,
+      nro_oc: c.orden_compra_numero ?? null,
       sub_total: r2(n(c.total_gravada) + n(c.total_inafecta) + n(c.total_exonerada)),
       igv: n(c.total_igv),
       total,
