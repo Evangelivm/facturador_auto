@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { getInvoices, getInvoiceById, getInvoicesForExport } from '@/services/databaseService';
+import { getInvoices, getInvoiceById, getInvoicesForExport, sincronizarFacturas } from '@/services/databaseService';
 import { ComprobanteOptionsModal, ComprobanteRow } from './ComprobanteOptionsModal';
 import { ToastType } from '@/types';
 import {
@@ -18,7 +18,7 @@ import {
   Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableFooter } from '@/components/ui/table';
-import { SearchIcon, DownloadIcon, FilterIcon, InboxIcon, XIcon, PlusIcon, CircleCheckIcon, CircleXIcon, Loader2Icon } from 'lucide-react';
+import { SearchIcon, DownloadIcon, FilterIcon, InboxIcon, XIcon, PlusIcon, CircleCheckIcon, CircleXIcon, Loader2Icon, RefreshCwIcon } from 'lucide-react';
 
 interface ComprobantesListViewProps {
   isOpen: boolean;
@@ -62,6 +62,25 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
 
   const [optionsInvoice, setOptionsInvoice] = useState<ComprobanteRow | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSincronizar = async () => {
+    setSyncing(true);
+    try {
+      const r = await sincronizarFacturas();
+      if (r.importados === 0) {
+        onNotify('Todo está al día: no hay facturas nuevas para sincronizar.', 'info');
+      } else {
+        const detalle = r.comprobantes.map(c => `${c.serie}-${c.numero}`).join(', ');
+        onNotify(`Se sincronizaron ${r.importados} comprobante(s): ${detalle}`, 'success');
+        await loadInvoices();
+      }
+    } catch (e: any) {
+      onNotify('Error al sincronizar: ' + (e.message || ''), 'error');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const loadInvoices = async () => {
     setLoading(true);
@@ -137,6 +156,10 @@ export const ComprobantesListView: React.FC<ComprobantesListViewProps> = ({
       <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-background/90 px-3 py-3 shadow-sm backdrop-blur-md sm:px-4 md:px-6">
         <h1 className="text-lg font-bold tracking-tight text-foreground sm:text-xl md:text-2xl">Comprobantes</h1>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleSincronizar} disabled={syncing} title="Importar facturas nuevas desde la tabla factura">
+            {syncing ? <Loader2Icon className="animate-spin" data-icon="inline-start" /> : <RefreshCwIcon data-icon="inline-start" />}
+            {syncing ? 'Sincronizando…' : 'Sincronizar'}
+          </Button>
           <Button variant="outline" onClick={onOpenConsolidado}>
             Consolidado
           </Button>

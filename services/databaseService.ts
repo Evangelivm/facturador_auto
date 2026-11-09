@@ -34,6 +34,18 @@ export const getInvoices = async (status?: string) => {
   }
 };
 
+// Sincroniza a `comprobantes` las facturas nuevas de la tabla `factura` (base de origen).
+export const sincronizarFacturas = async (): Promise<{
+  importados: number;
+  items: number;
+  comprobantes: { serie: string; numero: number; total: number }[];
+}> => {
+  const response = await fetch('/api/invoices/sync', { method: 'POST' });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || 'Error al sincronizar');
+  return data;
+};
+
 // Trae el detalle completo (items incluidos) de todos los comprobantes, para armar el
 // "Consolidado" en Excel. Solo se usa al exportar, no en el listado normal.
 export const getInvoicesForExport = async () => {
