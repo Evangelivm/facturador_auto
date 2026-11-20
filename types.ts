@@ -99,6 +99,8 @@ export interface InvoiceData {
 
   tipo_de_venta?: string;
   medio_de_pago?: string;
+  fondo_gto_antes_igv?: boolean;
+  fondo_gto_antes_igv_monto?: string;
   fondo_garantia?: boolean;
   fondo_garantia_monto?: string;
   orden_compra?: boolean;

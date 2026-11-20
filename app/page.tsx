@@ -107,6 +107,8 @@ const initialInvoice: InvoiceData = {
   tipo_de_venta: "Contado",
   medio_de_pago: "Efectivo",
   fondo_garantia_monto: "",
+  fondo_gto_antes_igv: false,
+  fondo_gto_antes_igv_monto: "",
   orden_compra_numero: "",
   proyecto: "",
   linea_servicio: ""
@@ -327,8 +329,24 @@ function App() {
     verifyConnection();
   }, []);
 
+  // "Fondo Gto. (antes IGV)": el monto se suma a la base imponible ANTES del IGV, como una
+  // línea extra del comprobante (así los ítems enviados a NubeFact cuadran con los totales).
+  const getItemsWithFondoPreIgv = (): InvoiceItem[] => {
+    const monto = parseFloat(invoice.fondo_gto_antes_igv_monto || "0");
+    if (!invoice.fondo_gto_antes_igv || !(monto > 0)) return items;
+    return [
+      ...items,
+      {
+        ...initialItem,
+        id: 'fondo-gto-antes-igv',
+        descripcion: 'FONDO DE GARANTIA',
+        ...calculateItemTotals(1, monto),
+      } as InvoiceItem,
+    ];
+  };
+
   useEffect(() => {
-    const totals = calculateInvoiceTotals(items);
+    const totals = calculateInvoiceTotals(getItemsWithFondoPreIgv());
     let detractionAmount = 0;
     if (invoice.detraccion && invoice.detraccion_porcentaje) {
       // Este monto queda en la MISMA moneda de la factura (afecta el neto a pagar / cuotas,
@@ -338,13 +356,13 @@ function App() {
     }
     setInvoice(prev => ({
       ...prev,
-      items: items,
+      items: getItemsWithFondoPreIgv(),
       total_gravada: totals.total_gravada,
       total_igv: totals.total_igv,
       total: totals.total,
       total_detraccion: detractionAmount
     }));
-  }, [items, invoice.detraccion, invoice.detraccion_porcentaje]);
+  }, [items, invoice.detraccion, invoice.detraccion_porcentaje, invoice.fondo_gto_antes_igv, invoice.fondo_gto_antes_igv_monto]);
 
   // Efecto para recalcular cuotas automáticamente si cambia el total y estamos en modo crédito
   useEffect(() => {
@@ -989,7 +1007,7 @@ function App() {
             estado: 'BORRADOR' as const,
             fecha_de_emision: formatToSunatDate(invoice.fecha_de_emision),
             fecha_de_vencimiento: invoice.fecha_de_vencimiento ? formatToSunatDate(invoice.fecha_de_vencimiento) : "",
-            items: items,
+            items: getItemsWithFondoPreIgv(),
             venta_al_credito: numCuotas > 0 ? cuotas.map(c => ({
                 cuota: c.cuota,
                 fecha_de_pago: formatToSunatDate(c.fecha_de_pago),
@@ -1611,6 +1629,13 @@ function App() {
                                  <Input name="fondo_garantia_monto" value={invoice.fondo_garantia_monto} onChange={handleInputChange} placeholder="Monto" className="w-24" />
                              )}
                              <label className="flex items-center gap-1.5 text-xs ml-2">
+                                <Checkbox checked={invoice.fondo_gto_antes_igv || false} onCheckedChange={(checked) => handleCheckboxChange({ target: { name: 'fondo_gto_antes_igv', checked } } as any)} />
+                                Fondo Gto. (antes IGV)
+                             </label>
+                             {invoice.fondo_gto_antes_igv && (
+                                 <Input name="fondo_gto_antes_igv_monto" value={invoice.fondo_gto_antes_igv_monto} onChange={handleInputChange} placeholder="Monto" className="w-24" />
+                             )}
+                             <label className="flex items-center gap-1.5 text-xs ml-2">
                                 <Checkbox checked={invoice.orden_compra || false} onCheckedChange={(checked) => handleCheckboxChange({ target: { name: 'orden_compra', checked } } as any)} />
                                 O/C
                              </label>
@@ -1815,6 +1840,9 @@ function App() {
                 </div>
                 <div className="md:col-span-4">
                   <div className="bg-gradient-to-br from-primary-600 via-primary-600 to-violet-700 p-2.5 rounded-2xl shadow-lg shadow-primary-600/30 text-white">
+                    {invoice.fondo_gto_antes_igv && parseFloat(invoice.fondo_gto_antes_igv_monto || "0") > 0 && (
+                        <div className="flex justify-between mb-1 text-primary-100"><span className="text-sm">Fondo Gto. (incl. en subtotal):</span><span className="font-medium text-white">{invoice.moneda === 2 ? '$' : 'S/'} {parseFloat(invoice.fondo_gto_antes_igv_monto || "0").toFixed(2)}</span></div>
+                    )}
                     <div className="flex justify-between mb-1 text-primary-100"><span className="text-sm">Subtotal:</span><span className="font-medium text-white">{invoice.moneda === 2 ? '$' : 'S/'} {invoice.total_gravada.toFixed(2)}</span></div>
                     <div className="flex justify-between mb-1.5 text-primary-100"><span className="text-sm">IGV (18%):</span><span className="font-medium text-white">{invoice.moneda === 2 ? '$' : 'S/'} {invoice.total_igv.toFixed(2)}</span></div>
 
