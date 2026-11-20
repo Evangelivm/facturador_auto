@@ -1623,7 +1623,7 @@ function App() {
                         <div className="col-span-12 md:col-span-6 flex items-end pb-1 gap-3">
                              <label className="flex items-center gap-1.5 text-xs">
                                 <Checkbox checked={invoice.fondo_garantia || false} onCheckedChange={(checked) => handleCheckboxChange({ target: { name: 'fondo_garantia', checked } } as any)} />
-                                Fondo Gto.
+                                Fondo Gto. (después total)
                              </label>
                              {invoice.fondo_garantia && (
                                  <Input name="fondo_garantia_monto" value={invoice.fondo_garantia_monto} onChange={handleInputChange} placeholder="Monto" className="w-24" />
