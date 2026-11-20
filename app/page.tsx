@@ -329,8 +329,9 @@ function App() {
     verifyConnection();
   }, []);
 
-  // "Fondo Gto. (antes IGV)": el monto se suma a la base imponible ANTES del IGV, como una
-  // línea extra del comprobante (así los ítems enviados a NubeFact cuadran con los totales).
+  // "Fondo Gto. (antes IGV)": el monto se RESTA de la base imponible ANTES del IGV, como una
+  // línea extra negativa (así los ítems enviados a NubeFact cuadran con los totales).
+  // Ej: subtotal - fondo = base; IGV = 18% de la base; total = base + IGV; neto = total - detracción.
   const getItemsWithFondoPreIgv = (): InvoiceItem[] => {
     const monto = parseFloat(invoice.fondo_gto_antes_igv_monto || "0");
     if (!invoice.fondo_gto_antes_igv || !(monto > 0)) return items;
@@ -340,7 +341,7 @@ function App() {
         ...initialItem,
         id: 'fondo-gto-antes-igv',
         descripcion: 'FONDO DE GARANTIA',
-        ...calculateItemTotals(1, monto),
+        ...calculateItemTotals(1, -monto),
       } as InvoiceItem,
     ];
   };
@@ -673,6 +674,11 @@ function App() {
 
       if (fondoGarantia > 0) {
           lines.push(`FONDO DE GARANTÍA: ${currencySymbol} ${fondoGarantia.toFixed(2)}`);
+      }
+
+      const fondoPreIgv = parseFloat(invoice.fondo_gto_antes_igv_monto || "0");
+      if (invoice.fondo_gto_antes_igv && fondoPreIgv > 0) {
+          lines.push(`FONDO DE GARANTÍA (ANTES DE IGV): ${currencySymbol} ${fondoPreIgv.toFixed(2)}`);
       }
 
       // Orden de Compra
@@ -1841,7 +1847,7 @@ function App() {
                 <div className="md:col-span-4">
                   <div className="bg-gradient-to-br from-primary-600 via-primary-600 to-violet-700 p-2.5 rounded-2xl shadow-lg shadow-primary-600/30 text-white">
                     {invoice.fondo_gto_antes_igv && parseFloat(invoice.fondo_gto_antes_igv_monto || "0") > 0 && (
-                        <div className="flex justify-between mb-1 text-primary-100"><span className="text-sm">Fondo Gto. (incl. en subtotal):</span><span className="font-medium text-white">{invoice.moneda === 2 ? '$' : 'S/'} {parseFloat(invoice.fondo_gto_antes_igv_monto || "0").toFixed(2)}</span></div>
+                        <div className="flex justify-between mb-1 text-primary-100"><span className="text-sm">Fondo Gto. (restado del subtotal):</span><span className="font-medium text-white">-{invoice.moneda === 2 ? '$' : 'S/'} {parseFloat(invoice.fondo_gto_antes_igv_monto || "0").toFixed(2)}</span></div>
                     )}
                     <div className="flex justify-between mb-1 text-primary-100"><span className="text-sm">Subtotal:</span><span className="font-medium text-white">{invoice.moneda === 2 ? '$' : 'S/'} {invoice.total_gravada.toFixed(2)}</span></div>
                     <div className="flex justify-between mb-1.5 text-primary-100"><span className="text-sm">IGV (18%):</span><span className="font-medium text-white">{invoice.moneda === 2 ? '$' : 'S/'} {invoice.total_igv.toFixed(2)}</span></div>
