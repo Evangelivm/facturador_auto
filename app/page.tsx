@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { InvoiceData, InvoiceItem, NubeFactResponse, Client, CatalogItem, CreditInstallment, ToastType } from '@/types';
 import { toast } from '@/components/ui/toast';
-import { calculateItemTotals, calculateInvoiceTotals, getTodayForInput, formatToSunatDate } from '@/utils/calculations';
+import { calculateItemTotals, round, calculateInvoiceTotals, getTodayForInput, formatToSunatDate } from '@/utils/calculations';
 import { sendInvoice, checkConnection } from '@/services/nubefactService';
 import { saveInvoiceToDb, getInvoices, getInvoiceById, getProjects, addProject, getServiceLines, addServiceLine } from '@/services/databaseService';
 import { getTipoCambioSunat } from '@/services/exchangeRateService';
@@ -329,25 +329,20 @@ function App() {
     verifyConnection();
   }, []);
 
-  // "Fondo Gto. (antes IGV)": el monto se RESTA de la base imponible ANTES del IGV, como una
-  // línea extra negativa (así los ítems enviados a NubeFact cuadran con los totales).
-  // Ej: subtotal - fondo = base; IGV = 18% de la base; total = base + IGV; neto = total - detracción.
-  const getItemsWithFondoPreIgv = (): InvoiceItem[] => {
-    const monto = parseFloat(invoice.fondo_gto_antes_igv_monto || "0");
-    if (!invoice.fondo_gto_antes_igv || !(monto > 0)) return items;
-    return [
-      ...items,
-      {
-        ...initialItem,
-        id: 'fondo-gto-antes-igv',
-        descripcion: 'FONDO DE GARANTIA',
-        ...calculateItemTotals(1, -monto),
-      } as InvoiceItem,
-    ];
-  };
-
   useEffect(() => {
-    const totals = calculateInvoiceTotals(getItemsWithFondoPreIgv());
+    const base = calculateInvoiceTotals(items);
+    // "Fondo Gto. (antes IGV)": el monto se RESTA de la base imponible ANTES del IGV y se envía
+    // a NubeFact como descuento global (no admite ítems negativos).
+    // subtotal - fondo = base; IGV = 18% de la base; total = base + IGV; neto = total - detracción.
+    const fondoMonto = parseFloat(invoice.fondo_gto_antes_igv_monto || "0");
+    const fondoPre = invoice.fondo_gto_antes_igv && fondoMonto > 0 ? round(fondoMonto) : 0;
+    const totals = fondoPre > 0
+      ? (() => {
+          const total_gravada = round(base.total_gravada - fondoPre);
+          const total_igv = round(total_gravada * ((invoice.porcentaje_de_igv || 18) / 100));
+          return { total_gravada, total_igv, total: round(total_gravada + total_igv) };
+        })()
+      : base;
     let detractionAmount = 0;
     if (invoice.detraccion && invoice.detraccion_porcentaje) {
       // Este monto queda en la MISMA moneda de la factura (afecta el neto a pagar / cuotas,
@@ -357,7 +352,9 @@ function App() {
     }
     setInvoice(prev => ({
       ...prev,
-      items: getItemsWithFondoPreIgv(),
+      items: items,
+      descuento_global: fondoPre > 0 ? fondoPre : "",
+      total_descuento: fondoPre > 0 ? fondoPre : "",
       total_gravada: totals.total_gravada,
       total_igv: totals.total_igv,
       total: totals.total,
@@ -1013,7 +1010,7 @@ function App() {
             estado: 'BORRADOR' as const,
             fecha_de_emision: formatToSunatDate(invoice.fecha_de_emision),
             fecha_de_vencimiento: invoice.fecha_de_vencimiento ? formatToSunatDate(invoice.fecha_de_vencimiento) : "",
-            items: getItemsWithFondoPreIgv(),
+            items: items,
             venta_al_credito: numCuotas > 0 ? cuotas.map(c => ({
                 cuota: c.cuota,
                 fecha_de_pago: formatToSunatDate(c.fecha_de_pago),
