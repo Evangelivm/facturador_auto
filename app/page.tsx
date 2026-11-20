@@ -675,7 +675,9 @@ function App() {
 
       const fondoPreIgv = parseFloat(invoice.fondo_gto_antes_igv_monto || "0");
       if (invoice.fondo_gto_antes_igv && fondoPreIgv > 0) {
-          lines.push(`FONDO DE GARANTÍA (ANTES DE IGV): ${currencySymbol} ${fondoPreIgv.toFixed(2)}`);
+          const subtotalItems = calculateInvoiceTotals(items).total_gravada;
+          const pct = subtotalItems > 0 ? Math.round((fondoPreIgv / subtotalItems) * 10000) / 100 : 0;
+          lines.push(`FONDO DE GARANTÍA (${pct}%): ${currencySymbol} ${fondoPreIgv.toFixed(2)}`);
       }
 
       // Orden de Compra
